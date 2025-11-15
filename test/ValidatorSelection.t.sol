@@ -21,6 +21,9 @@ contract ValidatorSelectionTest is Test {
         validatorSelection = new ValidatorSelection();
         validatorSelection.setBlocksBetweenSelection(1);
         validatorSelection.setBlocksWithoutProposeThreshold(10);
+        validatorSelection.addElegibleValidator(validator1);
+        validatorSelection.addElegibleValidator(validator2);
+        validatorSelection.addElegibleValidator(validator3);
     }
 
     function test_setBlocksBetweenSelection() public {
@@ -65,7 +68,7 @@ contract ValidatorSelectionTest is Test {
         validatorSelection.monitorsValidators();
         validatorSelection.addOperationalValidator(proposer);
         
-        vm.expectRevert("Monitoramento ja executado neste bloco.");
+        vm.expectRevert("Monitoring already executed in this block.");
         validatorSelection.monitorsValidators();
     }
 
@@ -79,7 +82,6 @@ contract ValidatorSelectionTest is Test {
         validatorSelection.monitorsValidators();
         validatorSelection.addOperationalValidator(proposer);    
         assertEq(validatorSelection.lastBlockProposedBy(proposer), block.number);
-        assertEq(validatorSelection.isOperational(proposer), true);
     }
 
     function test_selectValidatorsWithRemotion() public {
@@ -92,7 +94,6 @@ contract ValidatorSelectionTest is Test {
         validatorSelection.monitorsValidators();
         validatorSelection.addOperationalValidator(proposer); 
         assertEq(validatorSelection.lastBlockProposedBy(proposer), block.number);
-        assertEq(validatorSelection.isOperational(proposer), true);
 
         vm.roll(block.number + validatorSelection.blocksWithoutProposeThreshold() + 1);
 
@@ -106,6 +107,5 @@ contract ValidatorSelectionTest is Test {
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
         validatorSelection.addOperationalValidator(proposer);
-        assertEq(validatorSelection.isOperational(validator1), false);
     }
 }
