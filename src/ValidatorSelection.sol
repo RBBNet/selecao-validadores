@@ -4,9 +4,13 @@ import "src/IValidatorSelection.sol";
 import "src/permissioning/Governable.sol";
 import "src/permissioning/AdminProxy.sol";
 import "src/permissioning/NodeRulesV2Impl.sol";
+import "src/permissioning/AccountRulesV2Impl.sol";
 
-contract ValidatorSelection is IValidatorSelection {
+contract ValidatorSelection is IValidatorSelection, Governable {
     using EnumerableSet for EnumerableSet.AddressSet;
+
+    AccountRulesV2 public accountsContract;
+    NodeRulesV2Impl public nodesContract;
 
     EnumerableSet.AddressSet private elegibleValidators;
     EnumerableSet.AddressSet private operationalValidators;
@@ -19,6 +23,21 @@ contract ValidatorSelection is IValidatorSelection {
     event MonitorExecuted(address indexed executor);
     event SelectionExecuted(address indexed executor);
     event ValidatorRemoved(address indexed removed);
+
+    error InactiveAccount(address account, string message);
+    error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
+
+    constructor(AdminProxy adminsProxy) Governable (adminsProxy) {}
+
+    modifier onlyActiveAdmin() {
+        if(!accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender) && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)) {
+            revert UnauthorizedAccess(msg.sender);
+        }
+        if(!accountsContract.isAccountActive(msg.sender)) {
+            revert InactiveAccount(msg.sender, "The account or the respective organization is not active");
+        }
+        _;
+    }
 
     function monitorsValidators() external {
         address proposer = block.coinbase;
@@ -64,22 +83,45 @@ contract ValidatorSelection is IValidatorSelection {
         return operationalValidators.values();
     }
 
-    function addOperationalValidator(address _validator) public {
-        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
-        operationalValidators.add(_validator);
-    }
-
-    function addElegibleValidator(address _validator) public {
+    function addElegibleValidator(address _validator) onlyGovernance public {
         elegibleValidators.add(_validator);
     }
 
-    function removeOperationalValidator(address _validator) public {
+    function removeElegibleValidator(address _validator) onlyGovernance public {
+        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
+        elegibleValidators.remove(_validator);
+    }
+
+    function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) onlyActiveAdmin public {
+        address _validator = _calculateAddress(enodeHigh, enodeLow);
+        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
+        _revertIfNotSameOrganization(enodeHigh, enodeLow);
+        operationalValidators.add(_validator);
+    }
+
+    function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) onlyActiveAdmin public {
+        address _validator = _calculateAddress(enodeHigh, enodeLow);
         require(operationalValidators.contains(_validator) == true, "This node is not operational");
+        _revertIfNotSameOrganization(enodeHigh, enodeLow);
         operationalValidators.remove(_validator);
     }
 
-    function removeElegibleValidator(address _validator) public {
-        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
-        elegibleValidators.remove(_validator);
+    function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) public pure returns (address) {
+        bytes memory pubkey = abi.encodePacked(enodeHigh, enodeLow);
+        bytes32 hash = keccak256(pubkey);
+        return address(uint160(uint256(hash)));
+    }
+
+    function _calculateKey(bytes32 enodeHigh, bytes32 enodeLow) private pure returns(uint) {
+        return uint(keccak256(abi.encodePacked(enodeHigh, enodeLow)));
+    }
+
+    function _revertIfNotSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) private view {
+        AccountRulesV2.AccountData memory acc = accountsContract.getAccount(msg.sender);
+        uint nodeKey = _calculateKey(enodeHigh, enodeLow);
+        (,,,,uint orgId_,) = nodesContract.allowedNodes(nodeKey);
+        if(acc.orgId != orgId_) {
+            revert NotLocalNode(enodeHigh, enodeLow);
+        }
     }
 }
