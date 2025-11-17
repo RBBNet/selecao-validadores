@@ -11,8 +11,12 @@ contract NodeRulesV2Mock {
         Observer,
         Other
     }
-    
-    function allowedNodes(uint nodeKey) external view returns (bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name, uint orgId, bool active){
-        return (bytes32('1'), bytes32('2'), NodeType.Validator, "mock", 1, true);
+
+    function allowedNodes(uint256 nodeKey)
+        external
+        view
+        returns (bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name, uint256 orgId, bool active)
+    {
+        return (bytes32("1"), bytes32("2"), NodeType.Validator, "mock", 1, true);
     }
 }

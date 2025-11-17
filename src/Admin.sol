@@ -24,7 +24,9 @@ contract Admin is AdminProxy, AdminList {
 
     function addAdmin(address _address) public onlyAdmin returns (bool) {
         if (msg.sender == _address) {
-            emit AdminAdded(false, _address, msg.sender, block.timestamp, "Adding own account as Admin is not permitted");
+            emit AdminAdded(
+                false, _address, msg.sender, block.timestamp, "Adding own account as Admin is not permitted"
+            );
             return false;
         } else {
             bool result = add(_address);
@@ -40,7 +42,7 @@ contract Admin is AdminProxy, AdminList {
         return removed;
     }
 
-    function getAdmins() public view returns (address[] memory){
+    function getAdmins() public view returns (address[] memory) {
         return allowlist;
     }
 

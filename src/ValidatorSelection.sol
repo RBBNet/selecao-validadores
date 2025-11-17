@@ -19,7 +19,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     uint16 public blocksBetweenSelection;
     uint16 public blocksWithoutProposeThreshold;
 
-    mapping (address => uint) public lastBlockProposedBy;
+    mapping(address => uint256) public lastBlockProposedBy;
 
     event MonitorExecuted(address indexed executor);
     event SelectionExecuted(address indexed executor);
@@ -28,16 +28,21 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
 
-    constructor(AdminProxy adminsProxy, AccountRulesV2Mock _accountsContract, NodeRulesV2Mock _nodesContract) Governable (adminsProxy) {
+    constructor(AdminProxy adminsProxy, AccountRulesV2Mock _accountsContract, NodeRulesV2Mock _nodesContract)
+        Governable(adminsProxy)
+    {
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
     }
 
     modifier onlyActiveAdmin() {
-        if(!accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender) && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)) {
+        if (
+            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender)
+                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)
+        ) {
             revert UnauthorizedAccess(msg.sender);
         }
-        if(!accountsContract.isAccountActive(msg.sender)) {
+        if (!accountsContract.isAccountActive(msg.sender)) {
             revert InactiveAccount(msg.sender, "The account or the respective organization is not active");
         }
         _;
@@ -49,13 +54,13 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         lastBlockProposedBy[proposer] = block.number;
         emit MonitorExecuted(msg.sender);
 
-        if (block.number % blocksBetweenSelection == 0){
+        if (block.number % blocksBetweenSelection == 0) {
             _selectValidators();
         }
     }
 
     function _selectValidators() internal {
-        uint index = 0;
+        uint256 index = 0;
         while (index < operationalValidators.length()) {
             address candidateValidator = operationalValidators.at(index);
             if (block.number - lastBlockProposedBy[candidateValidator] > blocksWithoutProposeThreshold) {
@@ -73,12 +78,12 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         emit ValidatorRemoved(validatorToRemove);
     }
 
-    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) onlyGovernance external {
+    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
         require(_blocksBetweenSelection > 0, "Blocks between selection must be > 0.");
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
-    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) onlyGovernance external {
+    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
         require(_blocksWithoutProposeThreshold > 0, "The limit for blocks without a validator proposal must be > 0.");
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
@@ -87,23 +92,23 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         return operationalValidators.values();
     }
 
-    function addElegibleValidator(address _validator) onlyGovernance public {
+    function addElegibleValidator(address _validator) public onlyGovernance {
         elegibleValidators.add(_validator);
     }
 
-    function removeElegibleValidator(address _validator) onlyGovernance public {
+    function removeElegibleValidator(address _validator) public onlyGovernance {
         require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
         elegibleValidators.remove(_validator);
     }
 
-    function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) onlyActiveAdmin public {
+    function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) public onlyActiveAdmin {
         address _validator = _calculateAddress(enodeHigh, enodeLow);
         require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
         _revertIfNotSameOrganization(enodeHigh, enodeLow);
         operationalValidators.add(_validator);
     }
 
-    function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) onlyActiveAdmin public {
+    function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) public onlyActiveAdmin {
         address _validator = _calculateAddress(enodeHigh, enodeLow);
         require(operationalValidators.contains(_validator) == true, "This node is not operational");
         _revertIfNotSameOrganization(enodeHigh, enodeLow);
@@ -114,15 +119,15 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
     }
 
-    function _calculateKey(bytes32 enodeHigh, bytes32 enodeLow) private pure returns(uint) {
-        return uint(keccak256(abi.encodePacked(enodeHigh, enodeLow)));
+    function _calculateKey(bytes32 enodeHigh, bytes32 enodeLow) private pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)));
     }
 
     function _revertIfNotSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) private view {
         AccountRulesV2Mock.AccountData memory acc = accountsContract.getAccount(msg.sender);
-        uint nodeKey = _calculateKey(enodeHigh, enodeLow);
-        (,,,,uint orgId_,) = nodesContract.allowedNodes(nodeKey);
-        if(acc.orgId != orgId_) {
+        uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
+        (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
+        if (acc.orgId != orgId_) {
             revert NotLocalNode(enodeHigh, enodeLow);
         }
     }

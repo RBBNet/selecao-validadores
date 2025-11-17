@@ -43,7 +43,7 @@ contract ValidatorSelectionTest is Test {
         vm.stopPrank();
     }
 
-    function _getEnodeHighLow(Vm.Wallet memory _wallet) public pure returns (uint256, uint256){
+    function _getEnodeHighLow(Vm.Wallet memory _wallet) public pure returns (uint256, uint256) {
         uint256 enodeHigh = _wallet.publicKeyX;
         uint256 enodeLow = _wallet.publicKeyX;
         return (enodeHigh, enodeLow);
@@ -94,7 +94,7 @@ contract ValidatorSelectionTest is Test {
 
         vm.prank(sender);
         validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
-        
+
         vm.expectRevert("Monitoring already executed in this block.");
         validatorSelection.monitorsValidators();
     }

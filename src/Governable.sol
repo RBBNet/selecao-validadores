@@ -4,13 +4,12 @@ pragma solidity 0.8.28;
 import "./AdminProxy.sol";
 
 abstract contract Governable {
-
-    AdminProxy immutable public admins;
+    AdminProxy public immutable admins;
 
     error UnauthorizedAccess(address account);
 
     modifier onlyGovernance() {
-        if(!admins.isAuthorized(msg.sender)) {
+        if (!admins.isAuthorized(msg.sender)) {
             revert UnauthorizedAccess(msg.sender);
         }
         _;
@@ -19,6 +18,5 @@ abstract contract Governable {
     constructor(AdminProxy adminsProxy) {
         require(address(adminsProxy) != address(0), "Invalid address for Admin management smart contract");
         admins = adminsProxy;
-   }
-
+    }
 }

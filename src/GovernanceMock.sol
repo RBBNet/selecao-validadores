@@ -5,7 +5,7 @@ import "src/ValidatorSelection.sol";
 contract GovernanceMock {
     ValidatorSelection validatorSelectionContract;
 
-    constructor(address _validatorSelectionAddress){
+    constructor(address _validatorSelectionAddress) {
         validatorSelectionContract = ValidatorSelection(_validatorSelectionAddress);
     }
 

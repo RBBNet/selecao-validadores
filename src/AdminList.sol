@@ -5,7 +5,7 @@ contract AdminList {
         bool adminAdded,
         address indexed accountGrantee,
         address indexed accountGrantor,
-        uint indexed blockTimestamp,
+        uint256 indexed blockTimestamp,
         string message
     );
 
@@ -13,11 +13,11 @@ contract AdminList {
         bool adminRemoved,
         address indexed accountGrantee,
         address indexed accountGrantor,
-        uint indexed blockTimestamp
+        uint256 indexed blockTimestamp
     );
 
     address[] public allowlist;
-    mapping (address => uint256) private indexOf; //1 based indexing. 0 means non-existent
+    mapping(address => uint256) private indexOf; //1 based indexing. 0 means non-existent
 
     function size() internal view returns (uint256) {
         return allowlist.length;
@@ -38,14 +38,16 @@ contract AdminList {
 
     function addAll(address[] memory accounts, address _grantor) internal returns (bool) {
         bool allAdded = true;
-        for (uint i = 0; i<accounts.length; i++) {
+        for (uint256 i = 0; i < accounts.length; i++) {
             if (msg.sender == accounts[i]) {
-                emit AdminAdded(false, accounts[i], _grantor, block.timestamp, "Adding own account as Admin is not permitted");
+                emit AdminAdded(
+                    false, accounts[i], _grantor, block.timestamp, "Adding own account as Admin is not permitted"
+                );
                 allAdded = allAdded && false;
             } else if (exists(accounts[i])) {
                 emit AdminAdded(false, accounts[i], _grantor, block.timestamp, "Account is already an Admin");
                 allAdded = allAdded && false;
-            }  else {
+            } else {
                 bool result = add(accounts[i]);
                 string memory message = result ? "Admin account added successfully" : "Account is already an Admin";
                 emit AdminAdded(result, accounts[i], _grantor, block.timestamp, message);
@@ -58,7 +60,8 @@ contract AdminList {
 
     function remove(address _account) internal returns (bool) {
         uint256 index = indexOf[_account];
-        if (index > 0 && index <= allowlist.length) { //1-based indexing
+        if (index > 0 && index <= allowlist.length) {
+            //1-based indexing
             //move last address into index being vacated (unless we are dealing with last index)
             if (index != allowlist.length) {
                 address lastAccount = allowlist[allowlist.length - 1];
