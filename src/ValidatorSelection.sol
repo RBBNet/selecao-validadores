@@ -1,16 +1,17 @@
 pragma solidity ^0.8.13;
 
-import "src/IValidatorSelection.sol";
-import "src/permissioning/Governable.sol";
-import "src/permissioning/AdminProxy.sol";
-import "src/permissioning/NodeRulesV2Impl.sol";
-import "src/permissioning/AccountRulesV2Impl.sol";
+import {IValidatorSelection} from "src/IValidatorSelection.sol";
+import {Governable} from "src/Governable.sol";
+import {AdminProxy} from "src/AdminProxy.sol";
+import {NodeRulesV2Mock} from "src/NodeRulesV2Mock.sol";
+import {AccountRulesV2Mock, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "src/AccountRulesV2Mock.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract ValidatorSelection is IValidatorSelection, Governable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    AccountRulesV2 public accountsContract;
-    NodeRulesV2Impl public nodesContract;
+    AccountRulesV2Mock public accountsContract;
+    NodeRulesV2Mock public nodesContract;
 
     EnumerableSet.AddressSet private elegibleValidators;
     EnumerableSet.AddressSet private operationalValidators;
@@ -27,7 +28,10 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
 
-    constructor(AdminProxy adminsProxy) Governable (adminsProxy) {}
+    constructor(AdminProxy adminsProxy, AccountRulesV2Mock _accountsContract, NodeRulesV2Mock _nodesContract) Governable (adminsProxy) {
+        accountsContract = _accountsContract;
+        nodesContract = _nodesContract;
+    }
 
     modifier onlyActiveAdmin() {
         if(!accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender) && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)) {
@@ -69,12 +73,12 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         emit ValidatorRemoved(validatorToRemove);
     }
 
-    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external {
+    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) onlyGovernance external {
         require(_blocksBetweenSelection > 0, "Blocks between selection must be > 0.");
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
-    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external {
+    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) onlyGovernance external {
         require(_blocksWithoutProposeThreshold > 0, "The limit for blocks without a validator proposal must be > 0.");
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
@@ -107,9 +111,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     }
 
     function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) public pure returns (address) {
-        bytes memory pubkey = abi.encodePacked(enodeHigh, enodeLow);
-        bytes32 hash = keccak256(pubkey);
-        return address(uint160(uint256(hash)));
+        return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
     }
 
     function _calculateKey(bytes32 enodeHigh, bytes32 enodeLow) private pure returns(uint) {
@@ -117,7 +119,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     }
 
     function _revertIfNotSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) private view {
-        AccountRulesV2.AccountData memory acc = accountsContract.getAccount(msg.sender);
+        AccountRulesV2Mock.AccountData memory acc = accountsContract.getAccount(msg.sender);
         uint nodeKey = _calculateKey(enodeHigh, enodeLow);
         (,,,,uint orgId_,) = nodesContract.allowedNodes(nodeKey);
         if(acc.orgId != orgId_) {
