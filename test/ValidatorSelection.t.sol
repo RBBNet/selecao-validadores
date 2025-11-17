@@ -1,39 +1,64 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "../src/ValidatorSelection.sol";
+import {Test, Vm, console} from "forge-std/Test.sol";
+import {ValidatorSelection} from "src/ValidatorSelection.sol";
+import {GovernanceMock} from "src/GovernanceMock.sol";
+import {Admin} from "src/Admin.sol";
+import {NodeRulesV2Mock} from "src/NodeRulesV2Mock.sol";
+import {AccountRulesV2Mock} from "src/AccountRulesV2Mock.sol";
 
 contract ValidatorSelectionTest is Test {
     ValidatorSelection validatorSelection;
+    GovernanceMock governanceMock;
+    Admin adminContract;
+    NodeRulesV2Mock nodeRulesMock;
+    AccountRulesV2Mock accountRulesMock;
 
     address sender = address(0x123);
 
-    address validator1 = address(0x1);
-    address validator2 = address(0x2);
-    address validator3 = address(0x3);
+    Vm.Wallet validator1 = vm.createWallet(1);
+    Vm.Wallet validator2 = vm.createWallet(2);
+    Vm.Wallet validator3 = vm.createWallet(3);
 
     event MonitorExecuted(address indexed executor);
     event SelectionExecuted(address indexed executor);
     event ValidatorRemoved(address indexed removed);
 
     function setUp() public {
-        validatorSelection = new ValidatorSelection();
+        adminContract = new Admin();
+        accountRulesMock = new AccountRulesV2Mock();
+        nodeRulesMock = new NodeRulesV2Mock();
+
+        validatorSelection = new ValidatorSelection(adminContract, accountRulesMock, nodeRulesMock);
+        governanceMock = new GovernanceMock(address(validatorSelection));
+        adminContract.addAdmin(address(governanceMock));
+
+        vm.startPrank(address(governanceMock));
         validatorSelection.setBlocksBetweenSelection(1);
         validatorSelection.setBlocksWithoutProposeThreshold(10);
-        validatorSelection.addElegibleValidator(validator1);
-        validatorSelection.addElegibleValidator(validator2);
-        validatorSelection.addElegibleValidator(validator3);
+        validatorSelection.addElegibleValidator(validator1.addr);
+        validatorSelection.addElegibleValidator(validator2.addr);
+        validatorSelection.addElegibleValidator(validator3.addr);
+        vm.stopPrank();
+    }
+
+    function _getEnodeHighLow(Vm.Wallet memory _wallet) public pure returns (uint256, uint256){
+        uint256 enodeHigh = _wallet.publicKeyX;
+        uint256 enodeLow = _wallet.publicKeyX;
+        return (enodeHigh, enodeLow);
     }
 
     function test_setBlocksBetweenSelection() public {
         assertEq(validatorSelection.blocksBetweenSelection(), 1);
+        vm.prank(address(governanceMock));
         validatorSelection.setBlocksBetweenSelection(10);
         assertEq(validatorSelection.blocksBetweenSelection(), 10);
     }
 
     function test_setBlocksWithoutProposeThreshold() public {
         assertEq(validatorSelection.blocksWithoutProposeThreshold(), 10);
+        vm.prank(address(governanceMock));
         validatorSelection.setBlocksWithoutProposeThreshold(100);
         assertEq(validatorSelection.blocksWithoutProposeThreshold(), 100);
     }
@@ -44,8 +69,8 @@ contract ValidatorSelectionTest is Test {
     }
 
     function test_monitorsValidators() public {
-        address proposer = validator1;
-        vm.coinbase(proposer);
+        Vm.Wallet memory proposer = validator1;
+        vm.coinbase(proposer.addr);
 
         vm.prank(sender);
         vm.expectEmit(true, false, false, false);
@@ -53,12 +78,12 @@ contract ValidatorSelectionTest is Test {
         vm.expectEmit(true, false, false, false);
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
-        assertEq(validatorSelection.lastBlockProposedBy(proposer), block.number);
+        assertEq(validatorSelection.lastBlockProposedBy(proposer.addr), block.number);
     }
 
-    function test_multipleCallsTomonitorsValidators() public {
-        address proposer = validator1;
-        vm.coinbase(validator1);
+    function test_multipleCallsToMonitorsValidators() public {
+        Vm.Wallet memory proposer = validator1;
+        vm.coinbase(proposer.addr);
 
         vm.prank(sender);
         vm.expectEmit(true, false, false, false);
@@ -66,46 +91,48 @@ contract ValidatorSelectionTest is Test {
         vm.expectEmit(true, false, false, false);
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
-        validatorSelection.addOperationalValidator(proposer);
+
+        vm.prank(sender);
+        validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
         
         vm.expectRevert("Monitoring already executed in this block.");
         validatorSelection.monitorsValidators();
     }
 
     function test_selectValidatorsWithoutRemotion() public {
-        address proposer = validator1;
-        vm.coinbase(proposer);
+        Vm.Wallet memory proposer = validator1;
+        vm.coinbase(proposer.addr);
 
         vm.prank(sender);
         vm.expectEmit(true, false, false, false);
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
-        validatorSelection.addOperationalValidator(proposer);    
-        assertEq(validatorSelection.lastBlockProposedBy(proposer), block.number);
+        validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
+        assertEq(validatorSelection.lastBlockProposedBy(proposer.addr), block.number);
     }
 
     function test_selectValidatorsWithRemotion() public {
-        address proposer = validator1;
-        vm.coinbase(proposer);
+        Vm.Wallet memory proposer = validator1;
+        vm.coinbase(proposer.addr);
 
         vm.prank(sender);
         vm.expectEmit(true, false, false, false);
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
-        validatorSelection.addOperationalValidator(proposer); 
-        assertEq(validatorSelection.lastBlockProposedBy(proposer), block.number);
+        validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
+        assertEq(validatorSelection.lastBlockProposedBy(proposer.addr), block.number);
 
         vm.roll(block.number + validatorSelection.blocksWithoutProposeThreshold() + 1);
 
         proposer = validator2;
-        vm.coinbase(proposer);
+        vm.coinbase(proposer.addr);
 
         vm.prank(sender);
         vm.expectEmit(true, false, false, false);
-        emit ValidatorRemoved(validator1);
+        emit ValidatorRemoved(validator1.addr);
         vm.expectEmit(true, false, false, false);
         emit SelectionExecuted(sender);
         validatorSelection.monitorsValidators();
-        validatorSelection.addOperationalValidator(proposer);
+        validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
     }
 }
