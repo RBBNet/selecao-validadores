@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 import {IValidatorSelection} from "src/IValidatorSelection.sol";
 import {Governable} from "src/Governable.sol";
 import {AdminProxy} from "src/AdminProxy.sol";
-import {NodeRulesV2Mock} from "src/NodeRulesV2Mock.sol";
-import {AccountRulesV2Mock, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "src/AccountRulesV2Mock.sol";
+import {NodeRulesV2} from "permissioning/NodeRulesV2.sol";
+import {AccountRulesV2, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "permissioning/AccountRulesV2.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 contract ValidatorSelection is IValidatorSelection, Governable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    AccountRulesV2Mock public accountsContract;
-    NodeRulesV2Mock public nodesContract;
+    AccountRulesV2 public accountsContract;
+    NodeRulesV2 public nodesContract;
 
     EnumerableSet.AddressSet private elegibleValidators;
     EnumerableSet.AddressSet private operationalValidators;
@@ -28,7 +28,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
 
-    constructor(AdminProxy adminsProxy, AccountRulesV2Mock _accountsContract, NodeRulesV2Mock _nodesContract)
+    constructor(AdminProxy adminsProxy, AccountRulesV2 _accountsContract, NodeRulesV2 _nodesContract)
         Governable(adminsProxy)
     {
         accountsContract = _accountsContract;
@@ -124,7 +124,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     }
 
     function _revertIfNotSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) private view {
-        AccountRulesV2Mock.AccountData memory acc = accountsContract.getAccount(msg.sender);
+        AccountRulesV2.AccountData memory acc = accountsContract.getAccount(msg.sender);
         uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
         (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
         if (acc.orgId != orgId_) {
