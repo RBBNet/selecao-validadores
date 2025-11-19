@@ -28,13 +28,6 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
 
-    constructor(IAdminProxy adminsProxy, IAccountRulesV2 _accountsContract, INodeRulesV2 _nodesContract)
-        Governable(adminsProxy)
-    {
-        accountsContract = _accountsContract;
-        nodesContract = _nodesContract;
-    }
-
     modifier onlyActiveAdmin() {
         if (
             !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender)
@@ -46,6 +39,13 @@ contract ValidatorSelection is IValidatorSelection, Governable {
             revert InactiveAccount(msg.sender, "The account or the respective organization is not active");
         }
         _;
+    }
+
+    constructor(IAdminProxy adminsProxy, IAccountRulesV2 _accountsContract, INodeRulesV2 _nodesContract)
+        Governable(adminsProxy)
+    {
+        accountsContract = _accountsContract;
+        nodesContract = _nodesContract;
     }
 
     function monitorsValidators() external {
