@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.28;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
 
-import {AccountRulesV2} from "permissioning/AccountRulesV2.sol";
+import {IAccountRulesV2} from "src/interfaces/IAccountRulesV2.sol";
 
 bytes32 constant GLOBAL_ADMIN_ROLE = keccak256("GLOBAL_ADMIN_ROLE");
 bytes32 constant LOCAL_ADMIN_ROLE = keccak256("LOCAL_ADMIN_ROLE");
 
-contract AccountRulesV2Mock is AccountRulesV2 {
+contract AccountRulesV2Mock is IAccountRulesV2 {
     function hasRole(bytes32 role, address account) external view returns (bool) {
         return true;
     }
@@ -15,8 +15,8 @@ contract AccountRulesV2Mock is AccountRulesV2 {
         return true;
     }
 
-    function getAccount(address _account) external view returns (AccountRulesV2.AccountData memory) {
-        AccountRulesV2.AccountData memory data = AccountRulesV2.AccountData({
+    function getAccount(address _account) external view returns (IAccountRulesV2.AccountData memory) {
+        IAccountRulesV2.AccountData memory data = IAccountRulesV2.AccountData({
             orgId: 1,
             account: _account,
             roleId: GLOBAL_ADMIN_ROLE,
@@ -67,7 +67,7 @@ contract AccountRulesV2Mock is AccountRulesV2 {
     function getAccounts(uint256 pageNumber, uint256 pageSize)
         external
         view
-        returns (AccountRulesV2.AccountData[] memory)
+        returns (IAccountRulesV2.AccountData[] memory)
     {
         revert("NotSupported: Read function");
     }
@@ -79,7 +79,7 @@ contract AccountRulesV2Mock is AccountRulesV2 {
     function getAccountsByOrg(uint256 orgId, uint256 pageNumber, uint256 pageSize)
         external
         view
-        returns (AccountRulesV2.AccountData[] memory)
+        returns (IAccountRulesV2.AccountData[] memory)
     {
         revert("NotSupported: Read function");
     }

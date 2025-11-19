@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import {Test, Vm, console} from "forge-std/Test.sol";
 import {ValidatorSelection} from "src/ValidatorSelection.sol";
-import {GovernanceMock} from "src/GovernanceMock.sol";
-import {Admin} from "src/Admin.sol";
-import {NodeRulesV2Mock} from "src/NodeRulesV2Mock.sol";
-import {AccountRulesV2Mock} from "src/AccountRulesV2Mock.sol";
+import {AdminMock} from "test/mocks/AdminMock.sol";
+import {GovernanceMock} from "test/mocks/GovernanceMock.sol";
+import {NodeRulesV2Mock} from "test/mocks/NodeRulesV2Mock.sol";
+import {AccountRulesV2Mock} from "test/mocks/AccountRulesV2Mock.sol";
 
 contract ValidatorSelectionTest is Test {
     ValidatorSelection validatorSelection;
     GovernanceMock governanceMock;
-    Admin adminContract;
+    AdminMock adminMock;
     NodeRulesV2Mock nodeRulesMock;
     AccountRulesV2Mock accountRulesMock;
 
@@ -26,13 +26,13 @@ contract ValidatorSelectionTest is Test {
     event ValidatorRemoved(address indexed removed);
 
     function setUp() public {
-        adminContract = new Admin();
+        adminMock = new AdminMock();
         accountRulesMock = new AccountRulesV2Mock();
         nodeRulesMock = new NodeRulesV2Mock();
 
-        validatorSelection = new ValidatorSelection(adminContract, accountRulesMock, nodeRulesMock);
+        validatorSelection = new ValidatorSelection(adminMock, accountRulesMock, nodeRulesMock);
         governanceMock = new GovernanceMock(address(validatorSelection));
-        adminContract.addAdmin(address(governanceMock));
+        adminMock.addAdmin(address(governanceMock));
 
         vm.startPrank(address(governanceMock));
         validatorSelection.setBlocksBetweenSelection(1);

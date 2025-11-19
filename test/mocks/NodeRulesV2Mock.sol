@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.28;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
 
-import {NodeRulesV2} from "permissioning/NodeRulesV2.sol";
+import {INodeRulesV2} from "src/interfaces/INodeRulesV2.sol";
 
-contract NodeRulesV2Mock is NodeRulesV2 {
+contract NodeRulesV2Mock is INodeRulesV2 {
     function allowedNodes(uint256 nodeKey)
         external
         view
