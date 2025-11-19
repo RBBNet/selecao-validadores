@@ -12,11 +12,15 @@ contract ValidatorSelectionDeploy is Script {
     IAccountRulesV2 public accountsContract;
     ValidatorSelection public validatorSelection;
 
-    function setUp() public {
+    uint256 privateKey = vm.envUint("PRIVATE_KEY");
+    address deployerAddress = vm.addr(privateKey);
+
+    function run() public {
         adminsProxy = IAdminProxy(vm.envAddress("ADMIN_CONTRACT"));
         accountsContract = IAccountRulesV2(vm.envAddress("ACCOUNT_RULES_CONTRACT"));
         nodesContract = INodeRulesV2(vm.envAddress("NODE_RULES_CONTRACT"));
 
+        vm.broadcast(privateKey);
         validatorSelection = new ValidatorSelection(adminsProxy, accountsContract, nodesContract);
     }
 }
