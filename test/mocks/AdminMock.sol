@@ -31,7 +31,7 @@ contract AdminMock is IAdminProxy, AdminListMock {
         return true;
     }
 
-    function getAdmins() public view returns (address[] memory){
+    function getAdmins() public view returns (address[] memory) {
         return allowlist;
     }
 

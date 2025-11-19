@@ -13,9 +13,9 @@ contract ValidatorSelectionDeploy is Script {
     ValidatorSelection public validatorSelection;
 
     function setUp() public {
-        adminsProxy = IAdminProxy(vm.envAddress('ADMIN_CONTRACT'));
-        accountsContract = IAccountRulesV2(vm.envAddress('ACCOUNT_RULES_CONTRACT'));
-        nodesContract = INodeRulesV2(vm.envAddress('NODE_RULES_CONTRACT'));
+        adminsProxy = IAdminProxy(vm.envAddress("ADMIN_CONTRACT"));
+        accountsContract = IAccountRulesV2(vm.envAddress("ACCOUNT_RULES_CONTRACT"));
+        nodesContract = INodeRulesV2(vm.envAddress("NODE_RULES_CONTRACT"));
 
         validatorSelection = new ValidatorSelection(adminsProxy, accountsContract, nodesContract);
     }
