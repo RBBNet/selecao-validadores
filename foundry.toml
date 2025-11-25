@@ -6,5 +6,6 @@ remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
     "@forge-std/src/=lib/forge-std/src"
 ]
+ignored_warnings = ["unused-param", "unused-function", "mutability"]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
