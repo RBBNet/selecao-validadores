@@ -7,8 +7,9 @@ import {INodeRulesV2} from "src/interfaces/INodeRulesV2.sol";
 import {IAccountRulesV2, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "src/interfaces/IAccountRulesV2.sol";
 import {Governable} from "src/Governable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract ValidatorSelection is IValidatorSelection, Governable {
+contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IAccountRulesV2 public accountsContract;
@@ -42,9 +43,15 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         _;
     }
 
-    constructor(IAdminProxy adminsProxy, IAccountRulesV2 _accountsContract, INodeRulesV2 _nodesContract)
-        Governable(adminsProxy)
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(IAdminProxy adminsProxy, IAccountRulesV2 _accountsContract, INodeRulesV2 _nodesContract)
+        public
+        initializer
     {
+        Governable.initialize(adminsProxy);
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
     }
