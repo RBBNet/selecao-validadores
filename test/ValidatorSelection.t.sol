@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, Vm, console} from "forge-std/Test.sol";
+import {Test, Vm, console} from "lib/forge-std/src/Test.sol";
+import {Upgrades} from "lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 import {ValidatorSelection} from "src/ValidatorSelection.sol";
 import {AdminMock} from "test/mocks/AdminMock.sol";
 import {GovernanceMock} from "test/mocks/GovernanceMock.sol";
@@ -15,6 +16,8 @@ contract ValidatorSelectionTest is Test {
     NodeRulesV2Mock nodeRulesMock;
     AccountRulesV2Mock accountRulesMock;
 
+    address proxyContractAddress;
+
     address sender = address(0x123);
 
     Vm.Wallet validator1 = vm.createWallet(1);
@@ -25,13 +28,19 @@ contract ValidatorSelectionTest is Test {
     event SelectionExecuted(address indexed executor);
     event ValidatorRemoved(address indexed removed);
 
+    error MonitoringAlreadyExecuted();
+
     function setUp() public {
         adminMock = new AdminMock();
         accountRulesMock = new AccountRulesV2Mock();
         nodeRulesMock = new NodeRulesV2Mock();
 
-        validatorSelection = new ValidatorSelection(adminMock, accountRulesMock, nodeRulesMock);
-        governanceMock = new GovernanceMock(address(validatorSelection));
+        proxyContractAddress = Upgrades.deployUUPSProxy(
+            "ValidatorSelection.sol",
+            abi.encodeCall(ValidatorSelection.initialize, (adminMock, accountRulesMock, nodeRulesMock))
+        );
+        validatorSelection = ValidatorSelection(proxyContractAddress);
+        governanceMock = new GovernanceMock(address(proxyContractAddress));
         adminMock.addAdmin(address(governanceMock));
 
         vm.startPrank(address(governanceMock));
@@ -95,7 +104,8 @@ contract ValidatorSelectionTest is Test {
         vm.prank(sender);
         validatorSelection.addOperationalValidator(bytes32(proposer.publicKeyX), bytes32(proposer.publicKeyY));
 
-        vm.expectRevert("Monitoring already executed in this block.");
+        bytes4 expectedErrorSelector = MonitoringAlreadyExecuted.selector;
+        vm.expectRevert(expectedErrorSelector);
         validatorSelection.monitorsValidators();
     }
 
