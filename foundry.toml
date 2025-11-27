@@ -2,9 +2,15 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+ffi = true
+ast = true
+build_info = true
+extra_output = ["storageLayout"]
 remappings = [
     "@openzeppelin/=lib/openzeppelin-contracts/",
-    "@forge-std/src/=lib/forge-std/src"
+    "@openzeppelin-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+    "@forge-std/=lib/forge-std/src",
+    "@forge-upgrades/=lib/openzeppelin-foundry-upgrades/src"
 ]
 ignored_warnings = ["unused-param", "unused-function", "mutability"]
 
