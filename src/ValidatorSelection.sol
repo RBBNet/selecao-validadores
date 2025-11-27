@@ -147,4 +147,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
         if (acc.orgId != orgId_) revert NotLocalNode(enodeHigh, enodeLow);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
 }
