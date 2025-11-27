@@ -2,11 +2,13 @@
 pragma solidity ^0.8.13;
 
 import {IAdminProxy} from "src/interfaces/IAdminProxy.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-abstract contract Governable {
-    IAdminProxy public immutable admins;
+abstract contract Governable is Initializable {
+    IAdminProxy public admins;
 
     error UnauthorizedAccess(address account);
+    error InvalidAdminProxyAddress(IAdminProxy invalidAddress);
 
     modifier onlyGovernance() {
         if (!admins.isAuthorized(msg.sender)) {
@@ -15,8 +17,8 @@ abstract contract Governable {
         _;
     }
 
-    constructor(IAdminProxy adminsProxy) {
-        require(address(adminsProxy) != address(0), "Invalid address for Admin management smart contract");
+    function __Governable_init(IAdminProxy adminsProxy) internal onlyInitializing {
+        if (address(adminsProxy) == address(0)) revert InvalidAdminProxyAddress(adminsProxy);
         admins = adminsProxy;
     }
 }
