@@ -29,6 +29,11 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
 
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
+    error InvalidNumberOfBlockBetweenSelection(uint16 numberOfBlocks);
+    error InvalidNumberOfBlockWithoutPropose(uint16 numberOfBlocks);
+    error NotElegibleNode(address nodeAddress);
+    error NotOperationalNode(address nodeAddress);
+    error MonitoringAlreadyExecuted();
 
     modifier onlyActiveAdmin() {
         if (
@@ -58,7 +63,7 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
 
     function monitorsValidators() external {
         address proposer = block.coinbase;
-        require(lastBlockProposedBy[proposer] != block.number, "Monitoring already executed in this block.");
+        if (lastBlockProposedBy[proposer] == block.number) revert MonitoringAlreadyExecuted();
         lastBlockProposedBy[proposer] = block.number;
         emit MonitorExecuted(msg.sender);
 
@@ -87,12 +92,14 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
-        require(_blocksBetweenSelection > 0, "Blocks between selection must be > 0.");
+        if (_blocksBetweenSelection < 0) revert InvalidNumberOfBlockBetweenSelection(_blocksBetweenSelection);
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
     function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
-        require(_blocksWithoutProposeThreshold > 0, "The limit for blocks without a validator proposal must be > 0.");
+        if (_blocksWithoutProposeThreshold < 0) {
+            revert InvalidNumberOfBlockWithoutPropose(_blocksWithoutProposeThreshold);
+        }
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
@@ -105,20 +112,20 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
     }
 
     function removeElegibleValidator(address _validator) public onlyGovernance {
-        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
+        if (elegibleValidators.contains(_validator) == false) revert NotElegibleNode(_validator);
         elegibleValidators.remove(_validator);
     }
 
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) public onlyActiveAdmin {
         address _validator = _calculateAddress(enodeHigh, enodeLow);
-        require(elegibleValidators.contains(_validator) == true, "This node is not eligible");
+        if (elegibleValidators.contains(_validator) == false) revert NotElegibleNode(_validator);
         _revertIfNotSameOrganization(enodeHigh, enodeLow);
         operationalValidators.add(_validator);
     }
 
     function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) public onlyActiveAdmin {
         address _validator = _calculateAddress(enodeHigh, enodeLow);
-        require(operationalValidators.contains(_validator) == true, "This node is not operational");
+        if (operationalValidators.contains(_validator) == false) revert NotOperationalNode(_validator);
         _revertIfNotSameOrganization(enodeHigh, enodeLow);
         operationalValidators.remove(_validator);
     }
@@ -135,8 +142,6 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
         IAccountRulesV2.AccountData memory acc = accountsContract.getAccount(msg.sender);
         uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
         (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
-        if (acc.orgId != orgId_) {
-            revert NotLocalNode(enodeHigh, enodeLow);
-        }
+        if (acc.orgId != orgId_) revert NotLocalNode(enodeHigh, enodeLow);
     }
 }
