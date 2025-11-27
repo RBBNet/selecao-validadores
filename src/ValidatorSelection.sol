@@ -8,8 +8,10 @@ import {IAccountRulesV2, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "src/interfac
 import {Governable} from "src/Governable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 
-contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
+contract ValidatorSelection is IValidatorSelection, Initializable, Governable, OwnableUpgradeable, UUPSUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IAccountRulesV2 public accountsContract;
@@ -37,13 +39,13 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
 
     modifier onlyActiveAdmin() {
         if (
-            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender)
-                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)
+            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, _msgSender())
+                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, _msgSender())
         ) {
-            revert UnauthorizedAccess(msg.sender);
+            revert UnauthorizedAccess(_msgSender());
         }
-        if (!accountsContract.isAccountActive(msg.sender)) {
-            revert InactiveAccount(msg.sender, "The account or the respective organization is not active");
+        if (!accountsContract.isAccountActive(_msgSender())) {
+            revert InactiveAccount(_msgSender(), "The account or the respective organization is not active");
         }
         _;
     }
@@ -56,7 +58,8 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
         public
         initializer
     {
-        Governable.initialize(adminsProxy);
+        __Governable_init(adminsProxy);
+        __Ownable_init(_msgSender());
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
     }
@@ -65,7 +68,7 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
         address proposer = block.coinbase;
         if (lastBlockProposedBy[proposer] == block.number) revert MonitoringAlreadyExecuted();
         lastBlockProposedBy[proposer] = block.number;
-        emit MonitorExecuted(msg.sender);
+        emit MonitorExecuted(_msgSender());
 
         if (block.number % blocksBetweenSelection == 0) {
             _selectValidators();
@@ -82,7 +85,7 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
                 index++;
             }
         }
-        emit SelectionExecuted(msg.sender);
+        emit SelectionExecuted(_msgSender());
     }
 
     function _removeOperationalValidatorByIndex(uint256 _index) internal {
@@ -139,7 +142,7 @@ contract ValidatorSelection is IValidatorSelection, Governable, Initializable {
     }
 
     function _revertIfNotSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) private view {
-        IAccountRulesV2.AccountData memory acc = accountsContract.getAccount(msg.sender);
+        IAccountRulesV2.AccountData memory acc = accountsContract.getAccount(_msgSender());
         uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
         (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
         if (acc.orgId != orgId_) revert NotLocalNode(enodeHigh, enodeLow);
