@@ -90,8 +90,11 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             address[] memory selectedValidators = _selectValidators();
             uint256 numberOfSelectedValidators = selectedValidators.length;
             if (_doesItNeedRemoval(selectedValidators)) {
-                for (uint256 i = 0; i < numberOfSelectedValidators; i++) {
+                for (uint256 i = 0; i < numberOfSelectedValidators;) {
                     _removeOperationalValidator(selectedValidators[i]);
+                    unchecked {
+                        ++i;
+                    }
                 }
             }
         }
@@ -106,12 +109,15 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         address[] memory auxArray = new address[](numberOfOperationalValidators);
         uint256 numberOfSelectedValidators;
 
-        for (uint256 i; i < numberOfOperationalValidators; i++) {
+        for (uint256 i; i < numberOfOperationalValidators;) {
             address candidateValidator = operationalValidators.at(i);
             uint256 lastBlockOfCandidateValidator = lastBlockProposedBy[candidateValidator];
 
             if (block.number - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
                 auxArray[numberOfSelectedValidators++] = candidateValidator;
+            }
+            unchecked {
+                ++i;
             }
         }
 
