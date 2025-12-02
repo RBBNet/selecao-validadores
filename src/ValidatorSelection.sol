@@ -36,7 +36,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     // sha3 tem 30 de custo base + 6 de gas por palavra. ou seja ((N+1)*6)+30 = 6N+36.
     // logo, indexar é 12~30x mais barato, porém dificulta leitura de eventos.
     // emitir um evento por endereço removido: 750N de custo de gas (muito mais caro).
-    event ValidatorsRemoved(address[] removed);
+    event ValidatorsRemoved(address[] indexed removed);
 
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
