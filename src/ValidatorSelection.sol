@@ -73,6 +73,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         nodesContract = _nodesContract;
     }
 
+    // usar ou não onlyActiveAdmin?
+    // qualquer um pode contribuir com o monitoramento ou apenas as organizações?
     function monitorsValidators() external {
         // o evento facilita o rastreio das chamadas para atender o OLA, mas não é necessário
         // custo base de 375 de gas + 375 por topico indexado + 8 de gas por byte não indexado
@@ -86,10 +88,10 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         _monitorsValidators();
         if (block.number % blocksBetweenSelection == 0) {
             address[] memory selectedValidators = _selectValidators();
-            if (_doesItNeedRemoval(selectedValidators) == true) {
-                for (uint256 i = 0; i < selectedValidators.length; i++) {
-                    address validatorToRemove = selectedValidators[i];
-                    _removeOperationalValidator(validatorToRemove);
+            uint256 numberOfSelectedValidators = selectedValidators.length;
+            if (_doesItNeedRemoval(selectedValidators)) {
+                for (uint256 i = 0; i < numberOfSelectedValidators; i++) {
+                    _removeOperationalValidator(selectedValidators[i]);
                 }
             }
         }
@@ -123,12 +125,18 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function _doesItNeedRemoval(address[] memory _selectedValidators) internal view returns (bool) {
+        uint256 numberOfSelectedValidators = _selectedValidators.length;
+        if (numberOfSelectedValidators == 0) {
+            return false;
+        }
+
         uint256 numberOfOperationalValidators = operationalValidators.length();
         if (numberOfOperationalValidators <= 4) {
             return false;
         }
+
         uint256 minFail = (numberOfOperationalValidators % 3 == 1 ? 2 : 1);
-        return _selectedValidators.length >= minFail;
+        return numberOfSelectedValidators >= minFail;
     }
 
     function _removeOperationalValidator(address _validator) internal {
