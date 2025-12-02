@@ -62,8 +62,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     modifier onlySameOrganization(bytes32 enodeHigh, bytes32 enodeLow) {
         IAccountRulesV2.AccountData memory account = accountsContract.getAccount(_msgSender());
         uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
-        (,,,, uint256 orgId_,) = nodesContract.allowedNodes(nodeKey);
-        if (account.orgId != orgId_) revert NotLocalNode(enodeHigh, enodeLow);
+        (,,,, uint256 orgId,) = nodesContract.allowedNodes(nodeKey);
+        if (account.orgId != orgId) revert NotLocalNode(enodeHigh, enodeLow);
         _;
     }
 
@@ -140,8 +140,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return selectedValidators;
     }
 
-    function _doesItNeedRemoval(address[] memory _selectedValidators) internal view returns (bool) {
-        uint256 numberOfSelectedValidators = _selectedValidators.length;
+    function _doesItNeedRemoval(address[] memory selectedValidators) internal view returns (bool) {
+        uint256 numberOfSelectedValidators = selectedValidators.length;
         if (numberOfSelectedValidators == 0) {
             return false;
         }
@@ -155,15 +155,15 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return numberOfSelectedValidators >= minFail;
     }
 
-    function _removeOperationalValidators(address[] memory _nonOperationalValidators) internal {
-        uint256 numberOfNonOperationalValidators = _nonOperationalValidators.length;
+    function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
+        uint256 numberOfNonOperationalValidators = nonOperationalValidators.length;
         for (uint256 i = 0; i < numberOfNonOperationalValidators;) {
-            operationalValidators.remove(_nonOperationalValidators[i]);
+            operationalValidators.remove(nonOperationalValidators[i]);
             unchecked {
                 ++i;
             }
         }
-        emit ValidatorsRemoved(_nonOperationalValidators);
+        emit ValidatorsRemoved(nonOperationalValidators);
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
@@ -182,13 +182,13 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return operationalValidators.values();
     }
 
-    function addElegibleValidator(address _validator) public onlyGovernance {
-        elegibleValidators.add(_validator);
+    function addElegibleValidator(address validator) public onlyGovernance {
+        elegibleValidators.add(validator);
     }
 
-    function removeElegibleValidator(address _validator) public onlyGovernance {
-        if (elegibleValidators.contains(_validator) == false) revert NotElegibleNode(_validator);
-        elegibleValidators.remove(_validator);
+    function removeElegibleValidator(address validator) public onlyGovernance {
+        if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
+        elegibleValidators.remove(validator);
     }
 
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
@@ -196,9 +196,9 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         onlyActiveAdmin
         onlySameOrganization(enodeHigh, enodeLow)
     {
-        address _validator = _calculateAddress(enodeHigh, enodeLow);
-        if (elegibleValidators.contains(_validator) == false) revert NotElegibleNode(_validator);
-        operationalValidators.add(_validator);
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
+        operationalValidators.add(validator);
     }
 
     function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
@@ -206,9 +206,9 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         onlyActiveAdmin
         onlySameOrganization(enodeHigh, enodeLow)
     {
-        address _validator = _calculateAddress(enodeHigh, enodeLow);
-        if (operationalValidators.contains(_validator) == false) revert NotOperationalNode(_validator);
-        operationalValidators.remove(_validator);
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        if (operationalValidators.contains(validator) == false) revert NotOperationalNode(validator);
+        operationalValidators.remove(validator);
     }
 
     function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) public pure returns (address) {
