@@ -122,8 +122,13 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return selectedValidators;
     }
 
-    function _doesItNeedRemoval(address[] memory _selectedValidators) internal returns (bool) {
-        return true;
+    function _doesItNeedRemoval(address[] memory _selectedValidators) internal view returns (bool) {
+        uint256 numberOfOperationalValidators = operationalValidators.length();
+        if (numberOfOperationalValidators <= 4) {
+            return false;
+        }
+        uint256 minFail = (numberOfOperationalValidators % 3 == 1 ? 2 : 1);
+        return _selectedValidators.length >= minFail;
     }
 
     function _removeOperationalValidator(address _validator) internal {
