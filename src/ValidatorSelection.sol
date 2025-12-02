@@ -82,6 +82,10 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         nodesContract = _nodesContract;
     }
 
+    function getActiveValidators() external view returns (address[] memory) {
+        return operationalValidators.values();
+    }
+
     // usar ou não onlyActiveAdmin?
     // qualquer um pode contribuir com o monitoramento ou apenas as organizações?
     function monitorsValidators() external {
@@ -107,7 +111,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         lastBlockProposedBy[block.coinbase] = block.number;
     }
 
-    function _isAtSelectionBlock() internal {
+    function _isAtSelectionBlock() internal view returns (bool) {
         return block.number % blocksBetweenSelection == 0;
     }
 
@@ -178,21 +182,17 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
-    function getActiveValidators() external view returns (address[] memory) {
-        return operationalValidators.values();
-    }
-
-    function addElegibleValidator(address validator) public onlyGovernance {
+    function addElegibleValidator(address validator) external onlyGovernance {
         elegibleValidators.add(validator);
     }
 
-    function removeElegibleValidator(address validator) public onlyGovernance {
+    function removeElegibleValidator(address validator) external onlyGovernance {
         if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
         elegibleValidators.remove(validator);
     }
 
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
-        public
+        external
         onlyActiveAdmin
         onlySameOrganization(enodeHigh, enodeLow)
     {
@@ -202,7 +202,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
-        public
+        external
         onlyActiveAdmin
         onlySameOrganization(enodeHigh, enodeLow)
     {
@@ -211,7 +211,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         operationalValidators.remove(validator);
     }
 
-    function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) public pure returns (address) {
+    function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) internal pure returns (address) {
         return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
     }
 
