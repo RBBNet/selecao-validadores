@@ -7,15 +7,15 @@ bytes32 constant GLOBAL_ADMIN_ROLE = keccak256("GLOBAL_ADMIN_ROLE");
 bytes32 constant LOCAL_ADMIN_ROLE = keccak256("LOCAL_ADMIN_ROLE");
 
 contract AccountRulesV2Mock is IAccountRulesV2 {
-    function hasRole(bytes32 role, address account) external view returns (bool) {
+    function hasRole(bytes32, address) external pure returns (bool) {
         return true;
     }
 
-    function isAccountActive(address account) external view returns (bool) {
+    function isAccountActive(address) external pure returns (bool) {
         return true;
     }
 
-    function getAccount(address _account) external view returns (IAccountRulesV2.AccountData memory) {
+    function getAccount(address _account) external pure returns (IAccountRulesV2.AccountData memory) {
         IAccountRulesV2.AccountData memory data = IAccountRulesV2.AccountData({
             orgId: 1,
             account: _account,
@@ -26,120 +26,99 @@ contract AccountRulesV2Mock is IAccountRulesV2 {
         return data;
     }
 
-    function addLocalAccount(address account, bytes32 roleId, bytes32 dataHash) external virtual {
+    function addLocalAccount(address, bytes32, bytes32) external pure virtual {
         revert("NotSupported: LocalAccount management");
     }
 
-    function deleteLocalAccount(address account) external virtual {
+    function deleteLocalAccount(address) external virtual {
         revert("NotSupported: LocalAccount management");
     }
 
-    function updateLocalAccount(address account, bytes32 roleId, bytes32 dataHash) external {
+    function updateLocalAccount(address, bytes32, bytes32) external pure {
         revert("NotSupported: LocalAccount management");
     }
 
-    function updateLocalAccountStatus(address account, bool active) external {
+    function updateLocalAccountStatus(address, bool) external pure {
         revert("NotSupported: LocalAccount management");
     }
 
-    function setAccountTargetAccess(address account, bool restricted, address[] calldata allowedTargets) external {
+    function setAccountTargetAccess(address, bool, address[] calldata) external pure {
         revert("NotSupported: Target Access");
     }
 
-    function addAccount(address account, uint256 orgId, bytes32 roleId, bytes32 dataHash) external {
+    function addAccount(address, uint256, bytes32, bytes32) external pure {
         revert("NotSupported: Governance management");
     }
 
-    function deleteAccount(address account) external {
+    function deleteAccount(address) external pure {
         revert("NotSupported: Governance management");
     }
 
-    function setSmartContractSenderAccess(address smartContract, bool restricted, address[] calldata allowedSenders)
-        external
-    {
+    function setSmartContractSenderAccess(address, bool, address[] calldata) external pure {
         revert("NotSupported: Sender Access");
     }
 
-    function getNumberOfAccounts() external view returns (uint256) {
+    function getNumberOfAccounts() external pure returns (uint256) {
         revert("NotSupported: Read function");
     }
 
-    function getAccounts(uint256 pageNumber, uint256 pageSize)
+    function getAccounts(uint256, uint256) external pure returns (IAccountRulesV2.AccountData[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function getNumberOfAccountsByOrg(uint256) external pure returns (uint256) {
+        revert("NotSupported: Read function");
+    }
+
+    function getAccountsByOrg(uint256, uint256, uint256) external pure returns (IAccountRulesV2.AccountData[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function getAccountTargetAccess(address) external pure returns (bool, address[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function getNumberOfRestrictedAccounts() external pure returns (uint256) {
+        revert("NotSupported: Read function");
+    }
+
+    function getRestrictedAccounts(uint256, uint256) external pure returns (address[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function getSmartContractSenderAccess(address) external pure returns (bool, address[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function getNumberOfRestrictedSmartContracts() external pure returns (uint256) {
+        revert("NotSupported: Read function");
+    }
+
+    function getRestrictedSmartContracts(uint256, uint256) external pure returns (address[] memory) {
+        revert("NotSupported: Read function");
+    }
+
+    function transactionAllowed(address, address, uint256, uint256, uint256, bytes calldata)
         external
-        view
-        returns (IAccountRulesV2.AccountData[] memory)
+        pure
+        returns (bool)
     {
         revert("NotSupported: Read function");
     }
 
-    function getNumberOfAccountsByOrg(uint256 orgId) external view returns (uint256) {
+    function getRoleAdmin(bytes32) external pure returns (bytes32) {
         revert("NotSupported: Read function");
     }
 
-    function getAccountsByOrg(uint256 orgId, uint256 pageNumber, uint256 pageSize)
-        external
-        view
-        returns (IAccountRulesV2.AccountData[] memory)
-    {
+    function grantRole(bytes32, address) external pure {
         revert("NotSupported: Read function");
     }
 
-    function getAccountTargetAccess(address account) external view returns (bool restricted, address[] memory) {
+    function revokeRole(bytes32, address) external pure {
         revert("NotSupported: Read function");
     }
 
-    function getNumberOfRestrictedAccounts() external view returns (uint256) {
-        revert("NotSupported: Read function");
-    }
-
-    function getRestrictedAccounts(uint256 pageNumber, uint256 pageSize) external view returns (address[] memory) {
-        revert("NotSupported: Read function");
-    }
-
-    function getSmartContractSenderAccess(address smartContract)
-        external
-        view
-        returns (bool restricted, address[] memory)
-    {
-        revert("NotSupported: Read function");
-    }
-
-    function getNumberOfRestrictedSmartContracts() external view returns (uint256) {
-        revert("NotSupported: Read function");
-    }
-
-    function getRestrictedSmartContracts(uint256 pageNumber, uint256 pageSize)
-        external
-        view
-        returns (address[] memory)
-    {
-        revert("NotSupported: Read function");
-    }
-
-    function transactionAllowed(
-        address sender,
-        address target,
-        uint256 value,
-        uint256 gasPrice,
-        uint256 gasLimit,
-        bytes calldata payload
-    ) external view returns (bool) {
-        revert("NotSupported: Read function");
-    }
-
-    function getRoleAdmin(bytes32 role) external view returns (bytes32) {
-        revert("NotSupported: Read function");
-    }
-
-    function grantRole(bytes32 role, address account) external {
-        revert("NotSupported: Read function");
-    }
-
-    function revokeRole(bytes32 role, address account) external {
-        revert("NotSupported: Read function");
-    }
-
-    function renounceRole(bytes32 role, address callerConfirmation) external {
+    function renounceRole(bytes32, address) external pure {
         revert("NotSupported: Read function");
     }
 }

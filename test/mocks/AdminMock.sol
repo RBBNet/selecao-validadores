@@ -15,19 +15,19 @@ contract AdminMock is IAdminProxy, AdminListMock {
         _;
     }
 
-    constructor() public {
+    constructor() {
         add(msg.sender);
     }
 
-    function isAuthorized(address _address) public view returns (bool) {
+    function isAuthorized(address) public pure returns (bool) {
         return true;
     }
 
-    function addAdmin(address _address) public onlyAdmin returns (bool) {
+    function addAdmin(address) public view onlyAdmin returns (bool) {
         return true;
     }
 
-    function removeAdmin(address _address) public onlyAdmin notSelf(_address) returns (bool) {
+    function removeAdmin(address _address) public view onlyAdmin notSelf(_address) returns (bool) {
         return true;
     }
 
@@ -35,7 +35,7 @@ contract AdminMock is IAdminProxy, AdminListMock {
         return allowlist;
     }
 
-    function addAdmins(address[] memory accounts) public onlyAdmin returns (bool) {
+    function addAdmins(address[] memory accounts) public view onlyAdmin returns (bool) {
         return addAll(accounts, msg.sender);
     }
 }

@@ -13,15 +13,15 @@ contract AdminListMock {
         return indexOf[_account] != 0;
     }
 
-    function add(address _account) internal returns (bool) {
+    function add(address) internal pure returns (bool) {
         return true;
     }
 
-    function addAll(address[] memory accounts, address _grantor) internal returns (bool) {
+    function addAll(address[] memory, address) internal pure returns (bool) {
         return true;
     }
 
-    function remove(address _account) internal returns (bool) {
+    function remove(address) internal pure returns (bool) {
         return true;
     }
 }
