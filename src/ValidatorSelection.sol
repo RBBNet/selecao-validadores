@@ -95,7 +95,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             return;
         }
         _monitorsValidators();
-        if (block.number % blocksBetweenSelection == 0) {
+        if (_isAtSelectionBlock()) {
             address[] memory selectedValidators = _selectValidators();
             if (_doesItNeedRemoval(selectedValidators)) {
                 _removeOperationalValidators(selectedValidators);
@@ -105,6 +105,10 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     function _monitorsValidators() internal {
         lastBlockProposedBy[block.coinbase] = block.number;
+    }
+
+    function _isAtSelectionBlock() internal {
+        return block.number % blocksBetweenSelection == 0;
     }
 
     function _selectValidators() internal returns (address[] memory) {
