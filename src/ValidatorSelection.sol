@@ -27,7 +27,16 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     event MonitorExecuted();
     event SelectionExecuted();
-    event ValidatorRemoved(address indexed removed);
+
+    // em arrays indexados, é emitido o hash do array, então tem o custo de gas associado ao calculo do
+    // keccak. além disso, não consigos obter a lista dos validadores removidos pelo evento, já que
+    // vão estar "hash-ados". se não indexar, o gas é pago baseado no tamanho da lista que foi removida,
+    // sendo 8 de gas por byte. neste caso, consumimos 32*(N+1) bytes, onde N é o tamaho da lista
+    // (número de validadores removidos). ou seja, o custo de gas é dado por 32*(N+1)*8 = 256N+256.
+    // sha3 tem 30 de custo base + 6 de gas por palavra. ou seja ((N+1)*6)+30 = 6N+36.
+    // logo, indexar é 12~30x mais barato, porém dificulta leitura de eventos.
+    // emitir um evento por endereço removido: 750N de custo de gas (muito mais caro).
+    event ValidatorsRemoved(address[] removed);
 
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
@@ -88,14 +97,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         _monitorsValidators();
         if (block.number % blocksBetweenSelection == 0) {
             address[] memory selectedValidators = _selectValidators();
-            uint256 numberOfSelectedValidators = selectedValidators.length;
             if (_doesItNeedRemoval(selectedValidators)) {
-                for (uint256 i = 0; i < numberOfSelectedValidators;) {
-                    _removeOperationalValidator(selectedValidators[i]);
-                    unchecked {
-                        ++i;
-                    }
-                }
+                _removeOperationalValidators(selectedValidators);
             }
         }
     }
@@ -148,9 +151,15 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return numberOfSelectedValidators >= minFail;
     }
 
-    function _removeOperationalValidator(address _validator) internal {
-        operationalValidators.remove(_validator);
-        emit ValidatorRemoved(_validator);
+    function _removeOperationalValidators(address[] memory _nonOperationalValidators) internal {
+        uint256 numberOfNonOperationalValidators = _nonOperationalValidators.length;
+        for (uint256 i = 0; i < numberOfNonOperationalValidators;) {
+            operationalValidators.remove(_nonOperationalValidators[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        emit ValidatorsRemoved(_nonOperationalValidators);
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
