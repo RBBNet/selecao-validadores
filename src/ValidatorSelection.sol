@@ -122,8 +122,11 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         }
 
         address[] memory selectedValidators = new address[](numberOfSelectedValidators);
-        for (uint256 i; i < numberOfSelectedValidators; i++) {
+        for (uint256 i; i < numberOfSelectedValidators;) {
             selectedValidators[i] = auxArray[i];
+            unchecked {
+                ++i;
+            }
         }
 
         emit SelectionExecuted();
