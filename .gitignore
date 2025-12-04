@@ -14,5 +14,4 @@ docs/
 # Dotenv file
 .env
 
-permissioning/
 .vscode
