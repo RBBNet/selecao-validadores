@@ -38,10 +38,12 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     // emitir um evento por endereço removido: 750N de custo de gas (muito mais caro).
     event ValidatorsRemoved(address[] indexed removed);
 
-    error InactiveAccount(address account, string message);
+    error InactiveAccount(address account);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
     error NotElegibleNode(address nodeAddress);
     error NotOperationalNode(address nodeAddress);
+    error NumberOfBlockBetweenSelectionIsZero();
+    error NumberOfBlockWithoutProposeIsZero();
 
     modifier onlyActiveAdmin() {
         if (
@@ -51,7 +53,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             revert UnauthorizedAccess(_msgSender());
         }
         if (!accountsContract.isAccountActive(_msgSender())) {
-            revert InactiveAccount(_msgSender(), "The account or the respective organization is not active");
+            revert InactiveAccount(_msgSender());
         }
         _;
     }
@@ -168,10 +170,12 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
+        if (_blocksBetweenSelection == 0) revert NumberOfBlockBetweenSelectionIsZero();
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
     function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
+        if (_blocksWithoutProposeThreshold == 0) revert NumberOfBlockWithoutProposeIsZero();
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
