@@ -29,7 +29,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     event SelectionExecuted();
 
     // em arrays indexados, é emitido o hash do array, então tem o custo de gas associado ao calculo do
-    // keccak. além disso, não consigos obter a lista dos validadores removidos pelo evento, já que
+    // keccak. além disso, não consigo obter a lista dos validadores removidos pelo evento, já que
     // vão estar "hash-ados". se não indexar, o gas é pago baseado no tamanho da lista que foi removida,
     // sendo 8 de gas por byte. neste caso, consumimos 32*(N+1) bytes, onde N é o tamaho da lista
     // (número de validadores removidos). ou seja, o custo de gas é dado por 32*(N+1)*8 = 256N+256.
@@ -118,12 +118,13 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         uint256 numberOfOperationalValidators = operationalValidators.length();
         address[] memory auxArray = new address[](numberOfOperationalValidators);
         uint256 numberOfSelectedValidators;
+        uint256 blockNumber = block.number;
 
         for (uint256 i; i < numberOfOperationalValidators;) {
             address candidateValidator = operationalValidators.at(i);
             uint256 lastBlockOfCandidateValidator = lastBlockProposedBy[candidateValidator];
 
-            if (block.number - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
+            if (blockNumber - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
                 auxArray[numberOfSelectedValidators++] = candidateValidator;
             }
             unchecked {
@@ -179,13 +180,23 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
-    function addElegibleValidator(address validator) external onlyGovernance {
+    function addElegibleValidator(address validator) public onlyGovernance {
         elegibleValidators.add(validator);
     }
 
-    function removeElegibleValidator(address validator) external onlyGovernance {
+    function addElegibleValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        addElegibleValidator(validator);
+    }
+
+    function removeElegibleValidator(address validator) public onlyGovernance {
         if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
         elegibleValidators.remove(validator);
+    }
+
+    function removeElegibleValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        removeElegibleValidator(validator);
     }
 
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
