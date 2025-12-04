@@ -42,8 +42,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
     error NotElegibleNode(address nodeAddress);
     error NotOperationalNode(address nodeAddress);
-    error NumberOfBlockBetweenSelectionIsZero();
-    error NumberOfBlockWithoutProposeIsZero();
 
     modifier onlyActiveAdmin() {
         if (
@@ -93,32 +91,33 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         // neste caso, o custo seria N*375 de gas por blocos, onde N é o número de instituições
         // no nosso caso, seria 9*375 = 3375 por bloco, representando 0,02% do bloco, desconsiderando
         // os demais custos da transação
+        address proposer = block.coinbase;
+        uint256 blockNumber = block.number;
         emit MonitorExecuted();
-        if (lastBlockProposedBy[block.coinbase] == block.number) {
+        if (lastBlockProposedBy[proposer] == blockNumber) {
             return;
         }
-        _monitorsValidators();
-        if (_isAtSelectionBlock()) {
-            address[] memory selectedValidators = _selectValidators();
+        _monitorsValidators(proposer, blockNumber);
+        if (_isAtSelectionBlock(blockNumber)) {
+            address[] memory selectedValidators = _selectValidators(blockNumber);
             if (_doesItNeedRemoval(selectedValidators)) {
                 _removeOperationalValidators(selectedValidators);
             }
         }
     }
 
-    function _monitorsValidators() internal {
-        lastBlockProposedBy[block.coinbase] = block.number;
+    function _monitorsValidators(address proposer, uint256 blockNumber) internal {
+        lastBlockProposedBy[proposer] = blockNumber;
     }
 
-    function _isAtSelectionBlock() internal view returns (bool) {
-        return block.number % blocksBetweenSelection == 0;
+    function _isAtSelectionBlock(uint256 blockNumber) internal view returns (bool) {
+        return blockNumber % blocksBetweenSelection == 0;
     }
 
-    function _selectValidators() internal returns (address[] memory) {
+    function _selectValidators(uint256 blockNumber) internal returns (address[] memory) {
         uint256 numberOfOperationalValidators = operationalValidators.length();
         address[] memory auxArray = new address[](numberOfOperationalValidators);
         uint256 numberOfSelectedValidators;
-        uint256 blockNumber = block.number;
 
         for (uint256 i; i < numberOfOperationalValidators;) {
             address candidateValidator = operationalValidators.at(i);
@@ -171,12 +170,10 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
-        if (_blocksBetweenSelection == 0) revert NumberOfBlockBetweenSelectionIsZero();
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
     function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
-        if (_blocksWithoutProposeThreshold == 0) revert NumberOfBlockWithoutProposeIsZero();
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
