@@ -40,11 +40,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     error InactiveAccount(address account, string message);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
-    error InvalidNumberOfBlockBetweenSelection(uint16 numberOfBlocks);
-    error InvalidNumberOfBlockWithoutPropose(uint16 numberOfBlocks);
     error NotElegibleNode(address nodeAddress);
     error NotOperationalNode(address nodeAddress);
-    error MonitoringAlreadyExecuted();
 
     modifier onlyActiveAdmin() {
         if (
@@ -92,7 +89,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         // o evento facilita o rastreio das chamadas para atender o OLA, mas não é necessário
         // custo base de 375 de gas + 375 por topico indexado + 8 de gas por byte não indexado
         // neste caso, o custo seria N*375 de gas por blocos, onde N é o número de instituições
-        // no nosso caso, seria 10*375 = 3750 por bloco, representando 0,02% do bloco, desconsiderando
+        // no nosso caso, seria 9*375 = 3375 por bloco, representando 0,02% do bloco, desconsiderando
         // os demais custos da transação
         emit MonitorExecuted();
         if (lastBlockProposedBy[block.coinbase] == block.number) {
@@ -171,14 +168,10 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
-        if (_blocksBetweenSelection < 0) revert InvalidNumberOfBlockBetweenSelection(_blocksBetweenSelection);
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
     function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
-        if (_blocksWithoutProposeThreshold < 0) {
-            revert InvalidNumberOfBlockWithoutPropose(_blocksWithoutProposeThreshold);
-        }
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
