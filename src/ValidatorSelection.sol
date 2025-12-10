@@ -22,6 +22,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     uint16 public blocksBetweenSelection;
     uint16 public blocksWithoutProposeThreshold;
+    uint256 public nextSelectionBlock;
 
     mapping(address => uint256) public lastBlockProposedBy;
 
@@ -77,6 +78,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         __Ownable_init(_msgSender());
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
+        // inicializar também blocksBetweenSelection, blocksWithoutProposeThreshold e nextSelectionBlock
     }
 
     function getActiveValidators() external view returns (address[] memory) {
@@ -103,6 +105,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             if (_doesItNeedRemoval(selectedValidators)) {
                 _removeOperationalValidators(selectedValidators);
             }
+            _updateNextSelectionBlock();
         }
     }
 
@@ -111,9 +114,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function _isAtSelectionBlock(uint256 blockNumber) internal view returns (bool) {
-        // adicionar uma barreira baseada no número do bloco do deploy
-        //sugestão: fazer deploy, começar o monitoramento e apenas depois realizar a migração.
-        return blockNumber % blocksBetweenSelection == 0;
+        return blockNumber == nextSelectionBlock;
     }
 
     function _selectValidators(uint256 blockNumber) internal returns (address[] memory) {
@@ -174,9 +175,16 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         emit ValidatorsRemoved(nonOperationalValidators);
     }
 
-    // verificar se alteração das janelas afeta o monitoramento/seleção
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
         blocksBetweenSelection = _blocksBetweenSelection;
+    }
+
+    function setNextSelectionBlock(uint256 _nextSelectionBlock) external onlyGovernance {
+        nextSelectionBlock = _nextSelectionBlock;
+    }
+
+    function _updateNextSelectionBlock() internal {
+        nextSelectionBlock += blocksBetweenSelection;
     }
 
     function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
