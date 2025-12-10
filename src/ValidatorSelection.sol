@@ -36,7 +36,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     // sha3 tem 30 de custo base + 6 de gas por palavra. ou seja ((N+1)*6)+30 = 6N+36.
     // logo, indexar é 12~30x mais barato, porém dificulta leitura de eventos.
     // emitir um evento por endereço removido: 750N de custo de gas (muito mais caro).
-    event ValidatorsRemoved(address[] indexed removed);
+    event ValidatorsRemoved(address[] removed);
 
     error InactiveAccount(address account);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
@@ -91,9 +91,9 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         // neste caso, o custo seria N*375 de gas por blocos, onde N é o número de instituições
         // no nosso caso, seria 9*375 = 3375 por bloco, representando 0,02% do bloco, desconsiderando
         // os demais custos da transação
+        emit MonitorExecuted();
         address proposer = block.coinbase;
         uint256 blockNumber = block.number;
-        emit MonitorExecuted();
         if (lastBlockProposedBy[proposer] == blockNumber) {
             return;
         }
@@ -111,6 +111,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function _isAtSelectionBlock(uint256 blockNumber) internal view returns (bool) {
+        // adicionar uma barreira baseada no número do bloco do deploy
+        //sugestão: fazer deploy, começar o monitoramento e apenas depois realizar a migração.
         return blockNumber % blocksBetweenSelection == 0;
     }
 
@@ -150,12 +152,15 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         }
 
         uint256 numberOfOperationalValidators = operationalValidators.length();
-        if (numberOfOperationalValidators <= 4) {
+        uint256 numberOfRemainingValidators = numberOfOperationalValidators - numberOfSelectedValidators;
+        if (numberOfRemainingValidators <= 4) {
             return false;
         }
 
-        uint256 minFail = (numberOfOperationalValidators % 3 == 1 ? 2 : 1);
-        return numberOfSelectedValidators >= minFail;
+        uint256 maxFail = numberOfOperationalValidators - (2 * (numberOfOperationalValidators + 1)) / 3;
+        uint256 maxFailResulting = numberOfRemainingValidators - (2 * (numberOfRemainingValidators + 1)) / 3;
+
+        return 100 * maxFail / numberOfOperationalValidators > 100 * maxFailResulting / numberOfRemainingValidators;
     }
 
     function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
@@ -169,6 +174,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         emit ValidatorsRemoved(nonOperationalValidators);
     }
 
+    // verificar se alteração das janelas afeta o monitoramento/seleção
     function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
         blocksBetweenSelection = _blocksBetweenSelection;
     }
