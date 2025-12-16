@@ -149,11 +149,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             return false;
         }
         return true;
-
-        // uint256 maxFail = numberOfOperationalValidators - (2 * (numberOfOperationalValidators + 1)) / 3;
-        // uint256 maxFailResulting = numberOfRemainingValidators - (2 * (numberOfRemainingValidators + 1)) / 3;
-
-        // return 100 * maxFail / numberOfOperationalValidators > 100 * maxFailResulting / numberOfRemainingValidators;
     }
 
     function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
