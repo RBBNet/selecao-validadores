@@ -20,23 +20,14 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     EnumerableSet.AddressSet private elegibleValidators;
     EnumerableSet.AddressSet private operationalValidators;
 
-    uint16 public blocksBetweenSelection;
-    uint16 public blocksWithoutProposeThreshold;
+    uint256 public blocksBetweenSelection;
+    uint256 public blocksWithoutProposeThreshold;
     uint256 public nextSelectionBlock;
 
     mapping(address => uint256) public lastBlockProposedBy;
 
     event MonitorExecuted();
     event SelectionExecuted();
-
-    // em arrays indexados, é emitido o hash do array, então tem o custo de gas associado ao calculo do
-    // keccak. além disso, não consigo obter a lista dos validadores removidos pelo evento, já que
-    // vão estar "hash-ados". se não indexar, o gas é pago baseado no tamanho da lista que foi removida,
-    // sendo 8 de gas por byte. neste caso, consumimos 32*(N+1) bytes, onde N é o tamaho da lista
-    // (número de validadores removidos). ou seja, o custo de gas é dado por 32*(N+1)*8 = 256N+256.
-    // sha3 tem 30 de custo base + 6 de gas por palavra. ou seja ((N+1)*6)+30 = 6N+36.
-    // logo, indexar é 12~30x mais barato, porém dificulta leitura de eventos.
-    // emitir um evento por endereço removido: 750N de custo de gas (muito mais caro).
     event ValidatorsRemoved(address[] removed);
 
     error InactiveAccount(address account);
@@ -154,14 +145,15 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
         uint256 numberOfOperationalValidators = operationalValidators.length();
         uint256 numberOfRemainingValidators = numberOfOperationalValidators - numberOfSelectedValidators;
-        if (numberOfRemainingValidators <= 4) {
+        if (numberOfRemainingValidators < 4) {
             return false;
         }
+        return true;
 
-        uint256 maxFail = numberOfOperationalValidators - (2 * (numberOfOperationalValidators + 1)) / 3;
-        uint256 maxFailResulting = numberOfRemainingValidators - (2 * (numberOfRemainingValidators + 1)) / 3;
+        // uint256 maxFail = numberOfOperationalValidators - (2 * (numberOfOperationalValidators + 1)) / 3;
+        // uint256 maxFailResulting = numberOfRemainingValidators - (2 * (numberOfRemainingValidators + 1)) / 3;
 
-        return 100 * maxFail / numberOfOperationalValidators > 100 * maxFailResulting / numberOfRemainingValidators;
+        // return 100 * maxFail / numberOfOperationalValidators > 100 * maxFailResulting / numberOfRemainingValidators;
     }
 
     function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
@@ -175,7 +167,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         emit ValidatorsRemoved(nonOperationalValidators);
     }
 
-    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external onlyGovernance {
+    function setBlocksBetweenSelection(uint256 _blocksBetweenSelection) external onlyGovernance {
         blocksBetweenSelection = _blocksBetweenSelection;
     }
 
@@ -187,7 +179,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         nextSelectionBlock += blocksBetweenSelection;
     }
 
-    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external onlyGovernance {
+    function setBlocksWithoutProposeThreshold(uint256 _blocksWithoutProposeThreshold) external onlyGovernance {
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
     }
 
@@ -201,7 +193,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     }
 
     function removeElegibleValidator(address validator) public onlyGovernance {
-        if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
+        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
         elegibleValidators.remove(validator);
     }
 
@@ -210,13 +202,19 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         removeElegibleValidator(validator);
     }
 
+    // adicionar função onlyGovernance para validadores operacionais
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
         external
         onlyActiveAdmin
         onlySameOrganization(enodeHigh, enodeLow)
     {
         address validator = _calculateAddress(enodeHigh, enodeLow);
-        if (elegibleValidators.contains(validator) == false) revert NotElegibleNode(validator);
+        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
+        operationalValidators.add(validator);
+    }
+
+    function addOperationalValidator(address validator) external onlyGovernance {
+        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
         operationalValidators.add(validator);
     }
 
@@ -226,7 +224,12 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         onlySameOrganization(enodeHigh, enodeLow)
     {
         address validator = _calculateAddress(enodeHigh, enodeLow);
-        if (operationalValidators.contains(validator) == false) revert NotOperationalNode(validator);
+        if (!operationalValidators.contains(validator)) revert NotOperationalNode(validator);
+        operationalValidators.remove(validator);
+    }
+
+    function removeOperationalValidator(address validator) external onlyGovernance {
+        if (!operationalValidators.contains(validator)) revert NotOperationalNode(validator);
         operationalValidators.remove(validator);
     }
 
