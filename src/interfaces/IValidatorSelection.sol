@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 interface IValidatorSelection {
     function monitorsValidators() external;
-    function setBlocksBetweenSelection(uint16 _blocksBetweenSelection) external;
-    function setBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) external;
+    function setBlocksBetweenSelection(uint256 _blocksBetweenSelection) external;
+    function setBlocksWithoutProposeThreshold(uint256 _blocksWithoutProposeThreshold) external;
     function getActiveValidators() external view returns (address[] memory);
     function addElegibleValidator(address _validator) external;
     function removeElegibleValidator(address _validator) external;
