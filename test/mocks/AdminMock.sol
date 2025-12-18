@@ -19,8 +19,9 @@ contract AdminMock is IAdminProxy, AdminListMock {
         add(msg.sender);
     }
 
-    function isAuthorized(address) public pure returns (bool) {
-        return true;
+    function isAuthorized(address _address) public pure returns (bool) {
+        address mock = 0xa0Cb889707d426A7A386870A03bc70d1b0697598;
+        return mock == _address;
     }
 
     function addAdmin(address) public view onlyAdmin returns (bool) {

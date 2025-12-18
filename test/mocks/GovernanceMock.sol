@@ -10,11 +10,11 @@ contract GovernanceMock {
         validatorSelectionContract = ValidatorSelection(_validatorSelectionAddress);
     }
 
-    function executeSetBlocksBetweenSelection(uint16 _blocksBetweenSelection) public {
+    function executeSetBlocksBetweenSelection(uint256 _blocksBetweenSelection) public {
         validatorSelectionContract.setBlocksBetweenSelection(_blocksBetweenSelection);
     }
 
-    function executeSetBlocksWithoutProposeThreshold(uint16 _blocksWithoutProposeThreshold) public {
+    function executeSetBlocksWithoutProposeThreshold(uint256 _blocksWithoutProposeThreshold) public {
         validatorSelectionContract.setBlocksWithoutProposeThreshold(_blocksWithoutProposeThreshold);
     }
 
