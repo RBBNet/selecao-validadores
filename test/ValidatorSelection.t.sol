@@ -76,9 +76,6 @@ contract ValidatorSelectionTest is Test {
         console.log("ValidatorSelection:", address(validatorSelectionImplementationAddress));
         console.log("GovernanceMock:", address(governanceMock));
         console.log("AdminMock:", address(adminMock));
-        // ValidatorSelection:  0xc7183455a4C133Ae270771860664b6B7ec320bB1
-        // GovernanceMock:  0xa0Cb889707d426A7A386870A03bc70d1b0697598
-        // AdminMock:  0x5615dEB798BB3E4dFa0139dFa1b3D433Cc23b72f
     }
 
     function test_getActiveValidators() public {
@@ -267,6 +264,23 @@ contract ValidatorSelectionTest is Test {
         bytes memory expectedError = abi.encodeWithSelector(UnauthorizedAccess.selector, notGovernance.addr);
         vm.expectRevert(expectedError, proxyContractAddress);
         validatorSelection.setBlocksWithoutProposeThreshold(updateBlocksWithoutProposeThreshold);
+    }
+
+    function test_setNextSelectionBlock() public {
+        assertEq(validatorSelection.nextSelectionBlock(), initialNextSelectionBlock);
+        uint256 updateNextSelectionBlock = 20;
+        vm.prank(address(governanceMock));
+        validatorSelection.setNextSelectionBlock(updateNextSelectionBlock);
+        assertEq(validatorSelection.nextSelectionBlock(), updateNextSelectionBlock);
+    }
+
+    function test_setNextSelectionBlock_RevertsIfNotGovernance() public {
+        Vm.Wallet memory notGovernance = vm.createWallet(1234);
+        uint256 updateNextSelectionBlock = 20;
+        vm.prank(notGovernance.addr);
+        bytes memory expectedError = abi.encodeWithSelector(UnauthorizedAccess.selector, notGovernance.addr);
+        vm.expectRevert(expectedError, proxyContractAddress);
+        validatorSelection.setNextSelectionBlock(updateNextSelectionBlock);
     }
 
     function _getEnodeHighLow(Vm.Wallet memory _wallet) public pure returns (uint256, uint256) {
