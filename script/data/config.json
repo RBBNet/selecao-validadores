@@ -1,0 +1,21 @@
+{
+    "contracts": {
+        "adminProxy": "0x1F45849C948966Ac7e00313F39A942bD4cb644b9",
+        "accountRules": "0x8Fc7cBE1E9c4f60cd7c0C672e8e8d651f9e3D045",
+        "nodeRules": "0x805c4338Aa7D1AeA4aF14F79d03d14Ad815d617E"
+    },
+    "initialNextSelectionBlock": 10,
+    "initialBlocksBetweenSelection": 2,
+    "initialBlocksWithoutProposeThreshold": 10,
+    "initialElegibleValidators": [
+        "0xbebeac1b65916f055aa1933cbe93e9093445b798",
+        "0x3a9c1802b1bc237ac2b84255416a91cde09008f3",
+        "0x851513b758f375cc4f4d1ffd662bd4305776e1f1",
+        "0x54bb3902ad6a85dfc5711596d09d24c8994ee11b",
+        "0xa9e509d8ef92d5cb949a4ab0ff7bdf544300237d",
+        "0xfb1d352b03f3d143d5142f45496da61898b982d1",
+        "0x92e899bfed81d11dda40fa508b4fac3cde89aaaa",
+        "0xbe32b50b1d2524b234ee6ab407b82d664b35433f",
+        "0xd3d434caa141b7bf4788833944ba367a6ba07574"
+    ]
+}

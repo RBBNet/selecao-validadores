@@ -13,5 +13,9 @@ remappings = [
     "@forge-upgrades/=lib/openzeppelin-foundry-upgrades/src"
 ]
 ignored_warnings = ["unused-param", "unused-function", "mutability"]
+fs_permissions = [
+    { access = "read", path = "./script/data/" },
+    { access = "read", path = "./out" }
+]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
