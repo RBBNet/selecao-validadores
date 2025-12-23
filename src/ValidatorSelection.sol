@@ -34,6 +34,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
     error NotElegibleNode(address nodeAddress);
     error NotOperationalNode(address nodeAddress);
+    error FewEligibleValidators();
 
     modifier onlyActiveAdmin() {
         _checkActiveAdmin();
@@ -54,7 +55,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         IAdminProxy adminsProxy,
         IAccountRulesV2 _accountsContract,
         INodeRulesV2 _nodesContract,
-        address memory initialElegibleValidators,
+        address[] memory initialElegibleValidators,
         uint256 _blocksBetweenSelection,
         uint256 _blocksWithoutProposeThreshold,
         uint256 _nextSelectionBlock
@@ -71,8 +72,9 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     function _initElegibleValidators(address[] memory initialElegibleValidators) internal {
         uint256 initialElegibleValidatorsLength = initialElegibleValidators.length;
+        if (initialElegibleValidatorsLength < 4) revert FewEligibleValidators();
         for (uint256 i; i < initialElegibleValidatorsLength; i++) {
-            elegibleValidators[i] = initialElegibleValidators[i];
+            elegibleValidators.add(initialElegibleValidators[i]);
         }
     }
 
