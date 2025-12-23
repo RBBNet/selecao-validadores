@@ -36,23 +36,12 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     error NotOperationalNode(address nodeAddress);
 
     modifier onlyActiveAdmin() {
-        if (
-            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, _msgSender())
-                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, _msgSender())
-        ) {
-            revert UnauthorizedAccess(_msgSender());
-        }
-        if (!accountsContract.isAccountActive(_msgSender())) {
-            revert InactiveAccount(_msgSender());
-        }
+        _checkActiveAdmin();
         _;
     }
 
     modifier onlySameOrganization(bytes32 enodeHigh, bytes32 enodeLow) {
-        IAccountRulesV2.AccountData memory account = accountsContract.getAccount(_msgSender());
-        uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
-        (,,,, uint256 orgId,) = nodesContract.allowedNodes(nodeKey);
-        if (account.orgId != orgId) revert NotLocalNode(enodeHigh, enodeLow);
+        _checkSameOrganization(enodeHigh, enodeLow);
         _;
     }
 
@@ -70,6 +59,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
         // inicializar também blocksBetweenSelection, blocksWithoutProposeThreshold e nextSelectionBlock
+        // verificar inicialização da lista de elegíveis
     }
 
     function getActiveValidators() external view returns (address[] memory) {
@@ -197,7 +187,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         removeElegibleValidator(validator);
     }
 
-    // adicionar função onlyGovernance para validadores operacionais
     function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
         external
         onlyActiveAdmin
@@ -228,12 +217,31 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         operationalValidators.remove(validator);
     }
 
-    function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) internal pure returns (address) {
-        return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
+    function _checkActiveAdmin() internal view {
+        if (
+            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, _msgSender())
+                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, _msgSender())
+        ) {
+            revert UnauthorizedAccess(_msgSender());
+        }
+        if (!accountsContract.isAccountActive(_msgSender())) {
+            revert InactiveAccount(_msgSender());
+        }
+    }
+
+    function _checkSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) internal view {
+        IAccountRulesV2.AccountData memory account = accountsContract.getAccount(_msgSender());
+        uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
+        (,,,, uint256 orgId,) = nodesContract.allowedNodes(nodeKey);
+        if (account.orgId != orgId) revert NotLocalNode(enodeHigh, enodeLow);
     }
 
     function _calculateKey(bytes32 enodeHigh, bytes32 enodeLow) private pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)));
+    }
+
+    function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) internal pure returns (address) {
+        return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
