@@ -227,6 +227,13 @@ contract ValidatorSelectionTest is Test {
         // agora devemos ter 4 operacionais ao invés de 5
         assertEq(validatorSelection.getActiveValidators().length, 4);
 
+        // garantimos que foi o validator1 que foi removido
+        address[] memory activeValidators = validatorSelection.getActiveValidators();
+        uint256 activeValidatorsLength = activeValidators.length;
+        for (uint256 i; i < activeValidatorsLength; i++) {
+            assertNotEq(activeValidators[i], validator1.addr);
+        }
+
         // espera-se também que o bloco da próxima seleção seja atualizado
         uint256 expectedNextSelectionBlock = nextSelectionBlock + initialBlocksBetweenSelection;
         assertEq(validatorSelection.nextSelectionBlock(), expectedNextSelectionBlock);
