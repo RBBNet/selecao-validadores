@@ -50,16 +50,30 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         _disableInitializers();
     }
 
-    function initialize(IAdminProxy adminsProxy, IAccountRulesV2 _accountsContract, INodeRulesV2 _nodesContract)
-        public
-        initializer
-    {
+    function initialize(
+        IAdminProxy adminsProxy,
+        IAccountRulesV2 _accountsContract,
+        INodeRulesV2 _nodesContract,
+        address memory initialElegibleValidators,
+        uint256 _blocksBetweenSelection,
+        uint256 _blocksWithoutProposeThreshold,
+        uint256 _nextSelectionBlock
+    ) public initializer {
         __Governable_init(adminsProxy);
         __Ownable_init(_msgSender());
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
-        // inicializar também blocksBetweenSelection, blocksWithoutProposeThreshold e nextSelectionBlock
-        // verificar inicialização da lista de elegíveis
+        blocksBetweenSelection = _blocksBetweenSelection;
+        blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
+        nextSelectionBlock = _nextSelectionBlock;
+        _initElegibleValidators(initialElegibleValidators);
+    }
+
+    function _initElegibleValidators(address[] memory initialElegibleValidators) internal {
+        uint256 initialElegibleValidatorsLength = initialElegibleValidators.length;
+        for (uint256 i; i < initialElegibleValidatorsLength; i++) {
+            elegibleValidators[i] = initialElegibleValidators[i];
+        }
     }
 
     function getActiveValidators() external view returns (address[] memory) {
@@ -110,6 +124,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
             if (blockNumber - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
                 auxArray[numberOfSelectedValidators++] = candidateValidator;
             }
+
+            // https://www.soliditylang.org/blog/2023/10/25/solidity-0.8.22-release-announcement/
             unchecked {
                 ++i;
             }
