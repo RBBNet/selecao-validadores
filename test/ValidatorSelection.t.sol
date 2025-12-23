@@ -47,9 +47,27 @@ contract ValidatorSelectionTest is Test {
         accountRulesMock = new AccountRulesV2Mock();
         nodeRulesMock = new NodeRulesV2Mock();
 
+        address[] memory initialElegibleValidators = new address[](5);
+        initialElegibleValidators[0] = validator1.addr;
+        initialElegibleValidators[1] = validator2.addr;
+        initialElegibleValidators[2] = validator3.addr;
+        initialElegibleValidators[3] = validator4.addr;
+        initialElegibleValidators[4] = validator5.addr;
+
         proxyContractAddress = Upgrades.deployUUPSProxy(
             "ValidatorSelection.sol",
-            abi.encodeCall(ValidatorSelection.initialize, (adminMock, accountRulesMock, nodeRulesMock))
+            abi.encodeCall(
+                ValidatorSelection.initialize,
+                (
+                    adminMock,
+                    accountRulesMock,
+                    nodeRulesMock,
+                    initialElegibleValidators,
+                    initialBlocksBetweenSelection,
+                    initialBlocksWithoutProposeThreshold,
+                    initialNextSelectionBlock
+                )
+            )
         );
         validatorSelection = ValidatorSelection(proxyContractAddress);
 
@@ -60,17 +78,6 @@ contract ValidatorSelectionTest is Test {
         governanceMock = new GovernanceMock(address(proxyContractAddress));
         vm.prank(address(governanceMock));
         adminMock.addAdmin(address(governanceMock));
-
-        vm.startPrank(address(governanceMock));
-        validatorSelection.setNextSelectionBlock(initialNextSelectionBlock);
-        validatorSelection.setBlocksBetweenSelection(initialBlocksBetweenSelection);
-        validatorSelection.setBlocksWithoutProposeThreshold(initialBlocksWithoutProposeThreshold);
-        validatorSelection.addElegibleValidator(validator1.addr);
-        validatorSelection.addElegibleValidator(validator2.addr);
-        validatorSelection.addElegibleValidator(validator3.addr);
-        validatorSelection.addElegibleValidator(validator4.addr);
-        validatorSelection.addElegibleValidator(validator5.addr);
-        vm.stopPrank();
 
         console.log("UUProxyS:", address(proxyContractAddress));
         console.log("ValidatorSelection:", address(validatorSelectionImplementationAddress));
