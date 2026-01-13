@@ -85,11 +85,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     // usar ou não onlyActiveAdmin?
     // qualquer um pode contribuir com o monitoramento ou apenas as organizações?
     function monitorsValidators() external {
-        // o evento facilita o rastreio das chamadas para atender o OLA, mas não é necessário
-        // custo base de 375 de gas + 375 por topico indexado + 8 de gas por byte não indexado
-        // neste caso, o custo seria N*375 de gas por blocos, onde N é o número de instituições
-        // no nosso caso, seria 9*375 = 3375 por bloco, representando 0,02% do bloco, desconsiderando
-        // os demais custos da transação
         emit MonitorExecuted();
         address proposer = block.coinbase;
         uint256 blockNumber = block.number;
@@ -119,26 +114,18 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         address[] memory auxArray = new address[](numberOfOperationalValidators);
         uint256 numberOfSelectedValidators;
 
-        for (uint256 i; i < numberOfOperationalValidators;) {
+        for (uint256 i; i < numberOfOperationalValidators; i++) {
             address candidateValidator = operationalValidators.at(i);
             uint256 lastBlockOfCandidateValidator = lastBlockProposedBy[candidateValidator];
 
             if (blockNumber - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
                 auxArray[numberOfSelectedValidators++] = candidateValidator;
             }
-
-            // https://www.soliditylang.org/blog/2023/10/25/solidity-0.8.22-release-announcement/
-            unchecked {
-                ++i;
-            }
         }
 
         address[] memory selectedValidators = new address[](numberOfSelectedValidators);
-        for (uint256 i; i < numberOfSelectedValidators;) {
+        for (uint256 i; i < numberOfSelectedValidators; i++) {
             selectedValidators[i] = auxArray[i];
-            unchecked {
-                ++i;
-            }
         }
 
         emit SelectionExecuted();
@@ -156,16 +143,14 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         if (numberOfRemainingValidators < 4) {
             return false;
         }
+
         return true;
     }
 
     function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
         uint256 numberOfNonOperationalValidators = nonOperationalValidators.length;
-        for (uint256 i = 0; i < numberOfNonOperationalValidators;) {
+        for (uint256 i = 0; i < numberOfNonOperationalValidators; i++) {
             operationalValidators.remove(nonOperationalValidators[i]);
-            unchecked {
-                ++i;
-            }
         }
         emit ValidatorsRemoved(nonOperationalValidators);
     }
