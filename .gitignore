@@ -15,3 +15,5 @@ docs/
 .env
 
 .vscode
+features/
+slither.md
