@@ -26,6 +26,8 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     mapping(address => uint256) public lastBlockProposedBy;
 
+    uint256 public constant MIN_NUMBER_OF_NODES = 4;
+
     event MonitorExecuted();
     event SelectionExecuted();
     event ValidatorsRemoved(address[] removed);
@@ -72,7 +74,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
     function _initElegibleValidators(address[] memory initialElegibleValidators) internal {
         uint256 initialElegibleValidatorsLength = initialElegibleValidators.length;
-        if (initialElegibleValidatorsLength < 4) revert FewEligibleValidators();
+        if (initialElegibleValidatorsLength < MIN_NUMBER_OF_NODES) revert FewEligibleValidators();
         for (uint256 i; i < initialElegibleValidatorsLength; i++) {
             elegibleValidators.add(initialElegibleValidators[i]);
         }
@@ -140,7 +142,7 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
 
         uint256 numberOfOperationalValidators = operationalValidators.length();
         uint256 numberOfRemainingValidators = numberOfOperationalValidators - numberOfSelectedValidators;
-        if (numberOfRemainingValidators < 4) {
+        if (numberOfRemainingValidators < MIN_NUMBER_OF_NODES) {
             return false;
         }
 
