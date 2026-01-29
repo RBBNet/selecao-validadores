@@ -9,7 +9,6 @@ Para controlar quais nós estão ativos como validadores na rede.
     E 'Governance' é o endereço '0x8911B92560266d909766Ca745C346Ff5E5f9AFb2'
     E 'UsuarioComum' é o endereço '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
     E 'AdminAtivo' é o endereço '0xe60406F62E6681ddA682406b665109bD3fBE0625'
-# --- Cenários para adição de validador operacional ---
 
   Cenário: Sucesso: 'Governance' adiciona um validador operacional (por endereço)
     Dado que 'ValidadorElegível' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
@@ -59,7 +58,6 @@ Para controlar quais nós estão ativos como validadores na rede.
     Quando 'UsuarioComum' chama 'addOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
     Então a transação deve reverter
     E a mensagem de erro deve ser 'UnauthorizedAccess'
-# --- Cenários para remoção de validador operacional ---
 
   Cenário: Sucesso: 'Governance' remove um validador operacional (por endereço)
     Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'

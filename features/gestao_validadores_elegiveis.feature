@@ -8,7 +8,6 @@ Para controlar quais nós podem ser promovidos a validadores operacionais.
     Dado o contrato 'ValidatorSelection' está inicializado
     E 'Governance' é o endereço '0x8911B92560266d909766Ca745C346Ff5E5f9AFb2'
     E 'UsuarioComum' é o endereço '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-# --- Cenários para adição de novo validador ---
 
   Cenário: Sucesso: 'Governance' adiciona um novo validador elegível (por endereço)
     Dado que 'ValidadorNovo' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
@@ -36,7 +35,6 @@ Para controlar quais nós podem ser promovidos a validadores operacionais.
     Quando 'UsuarioComum' chama 'addElegibleValidator' passando 'EnodeHigh' e 'EnodeLow'
     Então a transação deve reverter
     E a mensagem de erro deve ser 'UnauthorizedAccess'
-# --- Cenários para remoção de validador ---
 
   Cenário: Sucesso: 'Governance' remove um validador elegível (por endereço)
     Dado que 'ValidadorElegível' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
