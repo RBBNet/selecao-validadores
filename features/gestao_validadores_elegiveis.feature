@@ -1,3 +1,5 @@
+# language: pt
+
 Funcionalidade: Gestão de Validadores Elegíveis
 
 Como a entidade Governance,

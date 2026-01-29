@@ -1,3 +1,5 @@
+# language: pt
+
 Funcionalidade: Gestão de Validadores Operacionais
 
 Como a entidade Governance e administradores ativos,

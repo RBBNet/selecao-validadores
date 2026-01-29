@@ -1,4 +1,5 @@
-# Arquivo: configuracao_selecao.feature
+# language: pt
+
 Funcionalidade: Configuração de Parâmetros de Seleção
 
 Como a entidade Governance,
