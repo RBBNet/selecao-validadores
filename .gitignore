@@ -17,3 +17,4 @@ docs/
 .vscode
 
 slither.md
+node_modules/
