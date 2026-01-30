@@ -1,123 +1,89 @@
 # language: pt
-Funcionalidade: Gestão de Validadores Operacionais
-Como a entidade Governance e administradores ativos,
-Eu desejo adicionar e remover endereços da lista de validadores operacionais
-Para controlar quais nós estão ativos como validadores na rede.
+Funcionalidade: Gestão de validadores operacionais
+  Como governança e administradores ativos,
+  Eu desejo incluir e remover validadores da lista de operacionais,
+  Para controlar quais nós estão ativos na rede como validadores.
 
-  Contexto: Configuração Inicial
-    Dado o contrato 'ValidatorSelection' está inicializado
-    E 'Governance' é o endereço '0x8911B92560266d909766Ca745C346Ff5E5f9AFb2'
-    E 'UsuarioComum' é o endereço '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-    E 'AdminAtivo' é o endereço '0xe60406F62E6681ddA682406b665109bD3fBE0625'
+  Contexto:
+    Dado que o contrato de seleção de validadores está implantado
+    E existe um endereço com papel de governança
+    E existe um endereço sem permissões administrativas
+    E existe um administrador ativo da rede
 
-  Cenário: Sucesso: 'Governance' adiciona um validador operacional (por endereço)
-    Dado que 'ValidadorElegível' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorElegível' está na lista de validadores elegíveis
-    Quando 'Governance' chama 'addOperationalValidator' passando 'ValidadorElegível'
-    Então 'ValidadorElegível' deve ser adicionado na lista de validadores operacionais
-    E nenhum erro deve ser retornado
+  Cenário: Governança inclui um validador operacional por endereço
+    Dado que existe um validador que consta na lista de elegíveis e não está operacional
+    Quando a governança inclui esse validador na lista de operacionais
+    Então o validador passa a constar na lista de validadores operacionais
 
-  Cenário: Falha: 'Governance' tenta adicionar um validador operacional não elegível (por endereço)
-    Dado que 'NóNãoElegível' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'NóNãoElegível' não está na lista de validadores elegíveis
-    Quando 'Governance' chama 'addOperationalValidator' passando 'NóNãoElegível'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'NotElegibleNode'
+  Cenário: Inclusão de validador não elegível como operacional é recusada
+    Dado que existe um endereço que não consta na lista de elegíveis
+    Quando a governança tenta incluir esse endereço na lista de operacionais
+    Então a operação é recusada
+    E o sistema informa que o nó não é elegível
 
-  Cenário: Falha: 'UsuarioComum' tenta adicionar um validador operacional (por endereço)
-    Dado que 'ValidadorElegível' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorElegível' está na lista de validadores elegíveis
-    Quando 'UsuarioComum' chamar 'addOperationalValidator' passando 'ValidadorElegível'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'UnauthorizedAccess'
+  Cenário: Inclusão de validador operacional por usuário sem permissão é recusada
+    Dado que existe um validador que consta na lista de elegíveis
+    Quando um usuário sem permissão tenta incluir esse validador na lista de operacionais
+    Então a operação é recusada
+    E o validador não passa a constar na lista de operacionais
 
-  Cenário: Sucesso: 'AdminAtivo' adiciona um validador operacional (por enode)
-    Dado que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorElegível' está na lista de validadores elegíveis
-    E 'AdminAtivo' pertence à mesma organização do enode
-    Quando 'AdminAtivo' chama 'addOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9' deve ser adicionado na lista de validadores operacionais
-    E nenhum erro deve ser retornado
+  Cenário: Administrador ativo inclui validador operacional por enode da própria organização
+    Dado que existe um validador elegível identificado por enode
+    E o administrador ativo pertence à mesma organização desse enode
+    Quando o administrador ativo inclui esse enode na lista de operacionais
+    Então o endereço correspondente passa a constar na lista de operacionais
 
-  Cenário: Falha: 'AdminAtivo' tenta adicionar um validador operacional de outra organização (por enode)
-    Dado que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorElegível' está na lista de validadores elegíveis
-    E 'AdminAtivo' NÃO pertence à mesma organização do enode
-    Quando 'AdminAtivo' chama 'addOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'NotLocalNode'
+  Cenário: Inclusão de validador de outra organização por administrador é recusada
+    Dado que existe um validador elegível identificado por enode
+    E o administrador ativo não pertence à organização desse enode
+    Quando o administrador ativo tenta incluir esse enode na lista de operacionais
+    Então a operação é recusada
+    E o sistema informa que o nó não é local da organização
 
-  Cenário: Falha: 'UsuarioComum' tenta adicionar um validador operacional (por enode)
-    Dado que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    Quando 'UsuarioComum' chama 'addOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'UnauthorizedAccess'
+  Cenário: Inclusão de validador operacional por enode por usuário sem permissão é recusada
+    Dado que existe um validador elegível identificado por enode
+    Quando um usuário sem permissão tenta incluir esse enode na lista de operacionais
+    Então a operação é recusada
+    E o endereço não passa a constar na lista de operacionais
 
-  Cenário: Sucesso: 'Governance' remove um validador operacional (por endereço)
-    Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorOperacional' está na lista de validadores operacionais
-    Quando 'Governance' chama 'removeOperationalValidator' passando 'ValidadorOperacional'
-    Então 'ValidadorOperacional' deve ser removido da lista de validadores operacionais
-    E nenhum erro deve ser retornado
+  Cenário: Governança remove um validador operacional por endereço
+    Dado que existe um validador que consta na lista de operacionais
+    Quando a governança remove esse validador da lista de operacionais
+    Então o validador deixa de constar na lista de operacionais
 
-  Cenário: Falha: 'Governance' tenta remover uma conta que não é validador operacional (por endereço)
-    Dado que 'NóNãoOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'NóNãoOperacional' não está na lista de validadores operacionais
-    Quando 'Governance' chama 'removeOperationalValidator' passando 'NóNãoOperacional'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'NotOperationalNode'
+  Cenário: Remoção de nó não operacional por governança é recusada
+    Dado que existe um endereço que não consta na lista de operacionais
+    Quando a governança tenta remover esse endereço da lista de operacionais
+    Então a operação é recusada
+    E o sistema informa que o nó não é operacional
 
-  Cenário: Falha: 'UsuarioComum' tenta remover um validador operacional (por endereço)
-    Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorOperacional' está na lista de validadores operacionais
-    Quando 'UsuarioComum' chama 'removeOperationalValidator' passando 'ValidadorOperacional'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'UnauthorizedAccess'
+  Cenário: Remoção de validador operacional por usuário sem permissão é recusada
+    Dado que existe um validador que consta na lista de operacionais
+    Quando um usuário sem permissão tenta remover esse validador da lista de operacionais
+    Então a operação é recusada
+    E o validador continua na lista de operacionais
 
-  Cenário: Sucesso: 'AdminAtivo' remove um validador operacional (por enode)
-    Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorOperacional' está na lista de validadores operacionais
-    E 'AdminAtivo' pertence à mesma organização do enode
-    Quando 'AdminAtivo' chama 'removeOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9' deve ser removido da lista de validadores operacionais
-    E nenhum erro deve ser retornado
+  Cenário: Administrador ativo remove validador operacional por enode da própria organização
+    Dado que existe um validador operacional identificado por enode
+    E o administrador ativo pertence à mesma organização desse enode
+    Quando o administrador ativo remove esse enode da lista de operacionais
+    Então o endereço correspondente deixa de constar na lista de operacionais
 
-  Cenário: Falha: 'AdminAtivo' tenta remover uma conta que não é validador operacional (por enode)
-    Dado que 'NóNãoOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'NóNãoOperacional' não está na lista de validadores operacionais
-    Quando 'AdminAtivo' chama 'removeOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'NotOperationalNode'
+  Cenário: Remoção de nó não operacional por enode por administrador é recusada
+    Dado que existe um par enode cujo endereço não consta na lista de operacionais
+    Quando o administrador ativo tenta remover esse enode da lista de operacionais
+    Então a operação é recusada
+    E o sistema informa que o nó não é operacional
 
-  Cenário: Falha: 'AdminAtivo' tenta remover um validador operacional de outra organização (por enode)
-    Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorOperacional' está na lista de validadores operacionais
-    E 'AdminAtivo' NÃO pertence à mesma organização do enode
-    Quando 'AdminAtivo' chama 'removeOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então a transação deve reverter
-    E a mensagem de erro deve ser 'NotLocalNode'
+  Cenário: Remoção de validador operacional de outra organização por administrador é recusada
+    Dado que existe um validador operacional identificado por enode
+    E o administrador ativo não pertence à organização desse enode
+    Quando o administrador ativo tenta remover esse enode da lista de operacionais
+    Então a operação é recusada
+    E o sistema informa que o nó não é local da organização
 
-  Cenário: Falha: 'UsuarioComum' tenta remover um validador operacional (por enode)
-    Dado que 'ValidadorOperacional' é o endereço '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E que 'EnodeHigh' é '0x08ee0b92e0962e90036811d5fdc683fccad22303464b74b0e0e9271e88d7db64.'
-    E 'EnodeLow' é '0xa476097d921324c21f90b21fc35850188aa97073e74da3fa707a0baeb4969725'
-    E o endereço calculado é '0x484b67ecb3ae10fa984f7741ccd71ccc07dbdbb9'
-    E 'ValidadorOperacional' está na lista de validadores operacionais
-    Quando 'UsuarioComum' chama 'removeOperationalValidator' passando 'EnodeHigh' e 'EnodeLow'
-    Então a transação deve reverter
-    E a mensagem de erro
+  Cenário: Remoção de validador operacional por enode por usuário sem permissão é recusada
+    Dado que existe um validador operacional identificado por enode
+    Quando um usuário sem permissão tenta remover esse enode da lista de operacionais
+    Então a operação é recusada
+    E o validador continua na lista de operacionais
