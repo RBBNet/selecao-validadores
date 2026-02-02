@@ -18,11 +18,27 @@ contract GovernanceMock {
         validatorSelectionContract.setBlocksWithoutProposeThreshold(_blocksWithoutProposeThreshold);
     }
 
-    function executeAddElegibleValidator(address _validator) public {
-        validatorSelectionContract.addElegibleValidator(_validator);
+    function executeAddEligibleValidator(address _validator) public {
+        validatorSelectionContract.addEligibleValidator(_validator);
     }
 
-    function executeRemoveElegibleValidator(address _validator) public {
-        validatorSelectionContract.removeElegibleValidator(_validator);
+    function executeAddEligibleValidatorByEnode(bytes32 enodeHigh, bytes32 enodeLow) public {
+        validatorSelectionContract.addEligibleValidatorByEnode(enodeHigh, enodeLow);
+    }
+
+    function executeRemoveEligibleValidator(address _validator) public {
+        validatorSelectionContract.removeEligibleValidator(_validator);
+    }
+
+    function executeAddOperationalValidatorByEnode(bytes32 enodeHigh, bytes32 enodeLow) public {
+        validatorSelectionContract.addOperationalValidatorByEnode(enodeHigh, enodeLow);
+    }
+
+    function executeRemoveOperationalValidatorByEnode(bytes32 enodeHigh, bytes32 enodeLow) public {
+        validatorSelectionContract.removeOperationalValidatorByEnode(enodeHigh, enodeLow);
+    }
+
+    function executeRemoveEligibleValidatorByEnode(bytes32 enodeHigh, bytes32 enodeLow) public {
+        validatorSelectionContract.removeEligibleValidatorByEnode(enodeHigh, enodeLow);
     }
 }

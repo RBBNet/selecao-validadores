@@ -15,7 +15,8 @@ remappings = [
 ignored_warnings = ["unused-param", "unused-function", "mutability"]
 fs_permissions = [
     { access = "read", path = "./script/data/" },
-    { access = "read", path = "./out" }
+    { access = "read", path = "./out" },
+    { access = "read-write", path = "./deployments/" }
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
