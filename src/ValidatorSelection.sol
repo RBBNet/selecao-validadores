@@ -84,8 +84,6 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
         return operationalValidators.values();
     }
 
-    // usar ou não onlyActiveAdmin?
-    // qualquer um pode contribuir com o monitoramento ou apenas as organizações?
     function monitorsValidators() external {
         emit MonitorExecuted();
         address proposer = block.coinbase;
