@@ -48,7 +48,7 @@ Funcionalidade: Monitoramento e seleção automática de validadores
     E todos os validadores operacionais propuseram bloco recentemente dentro do limite
     Quando o monitoramento é executado
     Então nenhum validador é removido da lista de operacionais
-    E o próximo bloco de seleção é atualizado para a próxima rodada
+    E o próximo bloco de seleção passa a ser 1100
 
   Cenário: Validadores inativos além do limite são removidos no bloco de seleção
     Dado que o bloco atual é 1000
@@ -59,7 +59,7 @@ Funcionalidade: Monitoramento e seleção automática de validadores
     Quando o monitoramento é executado
     Então esses dois validadores são removidos da lista de operacionais
     E os seis restantes permanecem na lista
-    E o próximo bloco de seleção é atualizado para a próxima rodada
+    E o próximo bloco de seleção passa a ser 1100
 
   Cenário: Validadores inativos não são removidos se o quorum mínimo seria violado
     Dado que o bloco atual é 1000
