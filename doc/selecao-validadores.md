@@ -25,7 +25,9 @@ Critérios de aceitação:
 Dúvidas:
 - Deveríamos colocar critérios adicionais para a lista de validadores (Ex.: Têm que estar permissionados, têm que estar ativos, apenas 1 por organização, etc.)? Acho que não...
   - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
-- O parâmetro `proximoBlocoSelecao` deve existir (e ser informado) ou deveria apenas ser uma variável de estado interna (e ser calculado)?
+- O parâmetro `proximoBlocoSelecao` deve existir (e ser informado) ou deveria apenas ser uma variável de estado interna (e ser calculado)? 
+  - (Glads) Apesar do nome, entendi que essa é a variável que (pelo menos, no início) define a partir de que bloco o contrato efetivamente começa a valer. Se for isso, acho que ele deveria ser preenchido pela Governança a qualquer momento, após o deploy. Isso porque sincronizar a transition do genesis.json com o smart contract pode ser bem complicado. 
+- As variáveis `IntervaloBlocosSelecao` e `LimiteBlocosSemProposicao` são diferentes mesmo? O algoritmo deve ficar mais complexo, creio. Por outro lado, é possível ser mais responsivo a quedas que ultrapassariam as fronteiras do intervalo, se o parâmetro fosse um só. 
 
 
 ## USSCxx - Besu consulta validadores operacionais para execução do algoritmo de consenso
@@ -55,8 +57,12 @@ Critérios de aceitação:
 
 Dúvidas:
 1. Vamos deixar a função de monitoração "aberta" para qualquer conta executar? Valeria restringir o acesso para evitar possíveis ataques de DOS?
+  - (Glads) O problema do ataque DoS se resolve em outra camada. O sujeito vai gastar o gas dele. Por outro lado, precisar, não precisa...
 2. No evento de seleção de validadores, seria interessante acrescentar alguma informação, como a lista de validadores selecionados ou ao menos a quantidade de validadores selecionados?
+  - (Glads) A princípio, mostrar quem está participando do consenso o tempo todo é bom. Apenas se o consumo de gas for grande que eu acho que não vale, mas isso se vê mais para frente. 
 3. Como podemos proteger a seleção de validadores de falhas mais amplas do envio de transações de monitoração (Ex.: Apenas um ou poucos partícipes enviando transações em frequência muito baixa), de forma a não causar remoção equivocada de validadores em massa?
+  - (Glads) Poderia guardar o número de blocos para os quais foi realizada uma chamada com sucesso no intervalo de avaliação. Se não tiver o suficiente, não executa a seleção. 
+  - (Glads) Um problema similar, mas menos grave é que, se há validadores fora, o intervalo aumenta de verificação aumenta. No azar de estarem em sequência, pode demorar um bocado, principalmente se o número de validadores aumentar. Por exemplo, se tivéssemos 21 validadores, poderiam cair 6. Isso dá uns bons minutos! Probabilidade de os seis caírem no mesmo intervalo talvez seja pequeno. 
 
 
 ## USSCxx - Administrador re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente
@@ -66,7 +72,7 @@ Critérios de aceitação:
 2. O administrador deve informar o endereço do nó a ser re-adicionado.
 3. O nó informado **não** deve estar na lista de validadores operacionais.
 4. O nó informado deve estar na lista de validadores elegíveis.
-5. O administrador somente pode re-adcionar nós vinculados à sua organização.
+5. O administrador somente pode re-adicionar nós vinculados à sua organização.
 6. O nó é adicionado à lista de validadores operacionais.
 7. Um evento é emitido, registrando:
    1. O endereço do nó
@@ -74,6 +80,8 @@ Critérios de aceitação:
 
 Dúvidas:
 - E se o nó é adicionado justamente no momento de realizar nova seleção de validadores (e será avaliado como tendo 0 blocos)?
+  - (Glads) Uma opção seria só realmente incluí-lo no consenso no momento da seleção de validadores. Seriam três status possíveis: operacional, em espera e fora do consenso (outros nomes, talvez).
+- (Glads) É um pouco estranho imaginar que o sujeito pode incluir no consenso um nó que nem permissionado está, né? Mas acho que "integrar" demais pode aumentar demais a complexidade...
 
 
 ## USSCxx - Administrador remove validador operacional
