@@ -15,20 +15,20 @@ Critérios de aceitação:
 2. É informada uma lista de endereços de nós validadores, para que sejam considerados no consenso da rede.
    1. Ao menos 4 validadores devem ser informados.
 3. São informados os parâmetros:
-   1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores:  `IntervaloBlocosSelecao`
-   2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `LimiteBlocosSemProposicao`.
+   1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores:  `blocksBetweenSelection`
+   2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `blocksWithoutProposeThreshold`.
       1. Acima desse limite o validador deverá ser pré-selecionado para remoção da lista validadores operacionais.
-   3. Próximo bloco para realização da seleção de validadores: `proximoBlocoSelecao`
+   3. Próximo bloco para realização da seleção de validadores: `nextSelectionBlock`
 4. Os validadores informados são adicionados às listas de validadores elegíveis e de validadores operacionais.
 5. A qualquer momento, todos os validadores da lista de validadores operacionais devem estar contidos também na lista de validadores elegíveis.
 
 Dúvidas:
 - Deveríamos colocar critérios adicionais para a lista de validadores (Ex.: Têm que estar permissionados, têm que estar ativos, apenas 1 por organização, etc.)? Acho que não...
   - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
-- O parâmetro `proximoBlocoSelecao` deve existir (e ser informado) ou deveria apenas ser uma variável de estado interna (e ser calculado)? 
-  - (Glads) Apesar do nome, entendi que essa é a variável que (pelo menos, no início) define a partir de que bloco o contrato efetivamente começa a valer. Se for isso, acho que ele deveria ser preenchido pela Governança a qualquer momento, após o deploy. Isso porque sincronizar a transition do genesis.json com o smart contract pode ser bem complicado. 
-- (Glads) As variáveis `IntervaloBlocosSelecao` e `LimiteBlocosSemProposicao` são diferentes mesmo? O algoritmo deve ficar mais complexo, creio. Por outro lado, é possível ser mais responsivo a quedas que ultrapassariam as fronteiras do intervalo, se o parâmetro fosse um só. 
-- (Claude) Falta explicitar se os parâmetros `IntervaloBlocosSelecao` e `LimiteBlocosSemProposicao` devem ter alguma validação no momento da inicialização (ex.: não podem ser zero). O código atual não valida, mas um valor zero causaria comportamento degenerado (seleção a cada bloco ou remoção imediata de todos os validadores).
+- O parâmetro `nextSelectionBlock` deve existir (e ser informado) ou deveria apenas ser uma variável de estado interna (e ser calculado)? 
+  - (Glads) Apesar do nome, entendi que essa é a variável que (pelo menos, no início) define a partir de que bloco o contrato efetivamente começa a valer. Se for isso, acho que ele deveria ser preenchido pela Governança a qualquer momento, após o deploy. Isso porque sincronizar a transition do genesis.json com o smart contract pode ser bem complicado.
+    - (JALOP) De fato, se ajustado no construtor, funciona como você está falando. Mas, [posteriormente, é usado para definir os intervalos de seleção](https://github.com/RBBNet/selecao-validadores/blob/feature/bdd-features/src/ValidatorSelection.sol#L102). Então, seria o caso de manter esse parâmetro, né?
+- As variáveis `blocksBetweenSelection` e `blocksWithoutProposeThreshold` são diferentes mesmo? O algoritmo deve ficar mais complexo, creio. Por outro lado, é possível ser mais responsivo a quedas que ultrapassariam as fronteiras do intervalo, se o parâmetro fosse um só. 
 
 
 ## USSCxx - Besu consulta validadores operacionais para execução do algoritmo de consenso
@@ -41,15 +41,22 @@ Dúvidas:
 - (Claude) O requisito não menciona consulta à lista de validadores elegíveis. Pode ser útil ter uma função equivalente para que a governança e os administradores possam verificar quem é elegível antes de tomar decisões. 
 
 
+## USSCxx - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso
+
+Critérios de aceitaçao:
+1. Qualquer conta ou o Besu pode consultar a lista de validadores elegíveis.
+2. A lista de validadores elegíveis é retornada.
+
+
 ## USSCxx - Partícipe executa monitoração para manutenção da lista de validadores operacionais
 
 Critérios de aceitação:
 1. Qualquer conta pode acionar a monitoração.
 2. A monitoração deve emitir um evento indicando sua execução.
 3. A monitoração deve contabilizar o bloco atual para o validador que o produziu.
-4. Caso seja o momento de selecionar validadores, conforme parâmetro `IntervaloBlocosSelecao`:
+4. Caso seja o momento de selecionar validadores, conforme parâmetro `blocksBetweenSelection`:
    1. A monitoração emite um evento indicando a realização da seleção de validadores.
-   2. Verifica-se, para cada validador operacional, se ele está a mais de `LimiteBlocosSemProposicao` blocos sem propor bloco.
+   2. Verifica-se, para cada validador operacional, se ele está a mais de `blocksWithoutProposeThreshold` blocos sem propor bloco.
       1. Validadores nesta condição devem ser pré-selecionados para remoção do consenso.
    3. Para cada validador pré-selecionado para remoção:
       1. É verificado se ao menos 4 validadores permanecerão na lista de validadores operacionais após a exclusão do validador pré-selecionado.
@@ -88,6 +95,7 @@ Dúvidas:
   - (Glads) Uma opção seria só realmente incluí-lo no consenso no momento da seleção de validadores. Seriam três status possíveis: operacional, em espera e fora do consenso (outros nomes, talvez).
   - (Claude) Complementando: ao re-adicionar um validador, seu `lastBlockProposedBy` permanecerá com o valor antigo (ou zero se nunca propôs). Na próxima seleção, ele será imediatamente considerado inativo e removido. É preciso inicializar `lastBlockProposedBy` ao re-adicionar (ex.: com `block.number`) ou adotar o estado intermediário que o Glads sugeriu.
 - (Glads) É um pouco estranho imaginar que o sujeito pode incluir no consenso um nó que nem permissionado está, né? Mas acho que "integrar" demais pode aumentar demais a complexidade...
+  - (JALOP) Dúvida semelhante à que coloquei na história abaixo - "Governança adiciona validador elegível". Mas acho que, se quisermos controle, vale fazer isso nessa outra história que mencionei, na gestão de validadores **elegíveis**. Para gestão de validadores operacionais, talvez não precise.
 
 
 ## USSCxx - Administrador remove validador operacional
@@ -128,8 +136,8 @@ Critérios de aceitação:
 1. Somente o processo de governança pode realizar a remoção.
 2. A governança deve informar o endereço do nó a ser removido.
 3. O nó informado deve estar na lista de validadores elegíveis.
-4. O nó é removido da lista de validadores elegíveis.
-5. O nó é removido da lista de validadores operacionais, se estiver nessa lista.
+4. O nó é removido da lista de validadores operacionais, se estiver nessa lista.
+5. O nó é removido da lista de validadores elegíveis.
 6. Um evento é emitido, registrando:
    1. O endereço do nó
 
@@ -142,19 +150,14 @@ Dúvidas:
 Critérios de aceitação:
 1. Somente o processo de governança pode realizar esta configuração.
 
+(JALOP) Nessa(s) história(s) temos que ter cuidado ao alterar um parâmetro para não quebrar premissas de funcionamento da seleção de validadores e, por consequência, quebrar a lógica desejada na execução da seleção.
 
 
 ## USSCxx - Governança atualiza o código *on chain* de seleção de validadores
 
 Critérios de aceitação:
-1. Somente o processo de governança pode realizar esta atualização.
+1. Somente o processo de governança pode realizar esta configuração.
 
 Dúvidas:
 - (Claude) Este requisito está muito enxuto. A implementação usa padrão UUPS (`UUPSUpgradeable`), o que seria bom mencionar. Além disso, poderia explicitar: (a) que a atualização requer deploy de nova implementação + chamada a `upgradeToAndCall`, (b) que a autorização é via `_authorizeUpgrade` restrita à governança, (c) se deve haver emissão de evento registrando a versão antiga e nova.
-
-
----
-
-## Observações Gerais (Claude)
-
-6. **Falta de USSC para cenários de *upgrade* de estado**: Ao atualizar o contrato via UUPS, o que acontece com o estado existente (listas de elegíveis/operacionais, parâmetros)? Seria útil ter um requisito explicitando que o estado deve ser preservado após a atualização.
+- (JALOP) Nessa história temos que decidir que mecanismo vamos querer utilizar para fazer eventuais [atualizações de código](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/#data-separation).
