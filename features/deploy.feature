@@ -8,7 +8,7 @@ Funcionalidade: Implantação do sistema de seleção de validadores
     Dado que os contratos de governança e permissionamento estão implantados
     E existe uma conta deployer autorizada
     E existe uma lista de pelo menos quatro endereços de validadores elegíveis
-    Quando o contrato de seleção de validadores é implantado com essa lista
+    Quando o contrato de seleção de validadores é implantado com essa lista de pelo menos quatro validadores elegíveis
     Então o sistema de seleção de validadores fica disponível
     E a lista de validadores elegíveis contém os endereços informados
 
@@ -16,6 +16,6 @@ Funcionalidade: Implantação do sistema de seleção de validadores
     Dado que os contratos de governança e permissionamento estão implantados
     E existe uma conta deployer autorizada
     E existe uma lista com menos de quatro endereços de validadores
-    Quando alguém tenta implantar o contrato de seleção de validadores com essa lista
+    Quando alguém tenta implantar o contrato de seleção de validadores com essa lista com menos de quatro validadores
     Então a implantação é recusada
     E o sistema de seleção de validadores não fica disponível
