@@ -1,77 +1,19 @@
-# Validator Selection - Rede Blockchain Brasil (RBB)
+# Seleção de Validadores - Rede Blockchain Brasil (RBB)
 
-Este repositório contém o contrato inteligente `ValidatorSelection`, responsável pelo gerenciamento dinâmico, monitoramento de disponibilidade (liveness) e rotação automática de validadores na Rede Blockchain Brasil (RBB).
+Este repositório contém artefatos de código para implementação de mecanismo de **"seleção de validadores"**, responsável pelo gerenciamento dinâmico, monitoramento de disponibilidade (liveness) e rotação automática de validadores na Rede Blockchain Brasil (RBB). Tal mecanismo foi projetado de forma a possibilitar a manutenção de níveis de serviço (SLA) dentro de certos parâmetros desejados para a operação da rede.
 
-## 📋 Visão Geral
+O mecanismo consiste em duas partes:
+1. *Smart contract* responsável por determinar quais nós podem e quais nós efetivamente devem fazer parte do consenso da rede, de acordo com regras e critérios pré-estabelecidos.
+2. Aplicação de monitoração, executada pelos partícipes da rede, que acionam, de forma periódica, o *smart contract* mencionado.
 
-O objetivo principal deste contrato é garantir a saúde e a performance da rede, monitorando quais validadores estão produzindo blocos e removendo automaticamente aqueles que ficarem inativos (offline) por um período superior ao limiar configurado.
+De maneira geral, o funcionamento ocorre da seguinte maneira:
+1. Cada partícipe executa a aplicação de monitoração.
+2. Periodicamente, cada instância da aplicação de monitoração, em cada partícipe, envia transações ao *smart contract* de seleção de validadores.
+3. Ao receber as transações, o *smart contract* "contabiliza" a produção de blocos de cada nó validador, avaliando se algum nó está inoperante (sem produzir blocos), de acordo com certos critérios e parâmetros.
+   1. A depender do comportamento detectado, o *smart contract* pode remover, automaticamente, validadores do consenso.
 
-O sistema classifica os validadores em dois grupos:
+Desta forma, nós validadores "improdutivos" são rapidamente removidos do consenso, evitando falhas nos *rounds* de consenso e estabilizando o tempo de produção de blocos próximo de seu valor nominal.
 
-1. **Validadores Elegíveis (`ElegibleValidators`):** Nós aprovados pela governança que possuem permissão para validar, mas podem estar desligados ou em manutenção.
-2. **Validadores Operacionais (`OperationalValidators`):** O subconjunto de nós elegíveis que está ativamente participando do consenso e propondo blocos.
+Os partícipes que tiverem seus validadores removidos automaticamente, podem, através de uma simples operação no *smart contract*, solicitar a re-inclusão de seus nós assim que tiverem investigado, diagnosticado e resolvido os problemas de operação, voltando a resiliência da rede ao seu patamar esperado.
 
-## ⚙️ Funcionalidades Principais
-
-### 1. Monitoramento de Liveness (Heartbeat)
-
-A função `monitorsValidators()` atua como o mecanismo de verificação da rede.
-
-* Ela identifica o `block.coinbase` (autor do bloco atual).
-* Atualiza o registro `lastBlockProposedBy` para esse validador.
-* Verifica se o ciclo atual (`blocksBetweenSelection`) foi concluído.
-
-### 2. Seleção e Remoção Automática
-
-Quando o bloco atual atinge o `nextSelectionBlock`, o contrato executa a lógica de saneamento:
-
-1. Itera sobre todos os **Validadores Operacionais**.
-2. Verifica a diferença entre o bloco atual e o último bloco proposto pelo validador.
-3. Se a diferença for maior que `blocksWithoutProposeThreshold`, o validador é considerado inativo.
-4. **Trava de Segurança:** O validador inativo é removido da lista operacional **apenas se** a rede mantiver, no mínimo, **4 validadores ativos** (requisito para tolerância a falhas em consenso QBFT).
-
-### 3. Gestão de Organizações (Soberania Local)
-
-O contrato permite que administradores de uma organização específica gerenciem seus próprios nós sem depender de uma votação de governança central para operações cotidianas:
-
-* Um administrador da "Org A" pode adicionar ou remover um nó da "Org A" da lista de operacionais (desde que o nó já seja elegível).
-* Isso é garantido pelo modificador `onlySameOrganization`, que valida o `orgId` do remetente e do nó alvo no contrato `NodeRules`.
-
-## 📊 Parâmetros de Configuração
-
-Os seguintes parâmetros podem ser ajustados via governança:
-
-| Parâmetro | Descrição |
-| :--- | :--- |
-| `blocksBetweenSelection` | O intervalo de blocos (época) entre cada execução da lógica de verificação/remoção. |
-| `blocksWithoutProposeThreshold` | O número máximo de blocos que um validador pode ficar sem propor antes de ser marcado para remoção. |
-| `nextSelectionBlock` | O número do bloco onde a próxima verificação de seleção ocorrerá. |
-
-## 🔐 Controle de Acesso
-
-O contrato implementa controle de acesso granular:
-
-* **`onlyGovernance`**: Acesso irrestrito. Pode alterar parâmetros globais e forçar a adição/remoção de qualquer validador.
-* **`onlyActiveAdmin`**: Requer que o chamador tenha a role `GLOBAL_ADMIN_ROLE` ou `LOCAL_ADMIN_ROLE` e esteja ativo no `AccountRules`.
-* **`onlySameOrganization`**: Garante que o administrador pertença à mesma organização do nó que está sendo manipulado.
-
-## 🚀 Fluxo Lógico
-
-Abaixo, um diagrama simplificado do fluxo da função `monitorsValidators`:
-
-```mermaid
-graph TD
-    A[Chamada monitorsValidators] --> B{Já registrou este bloco?}
-    B -- Sim --> C[Fim]
-    B -- Não --> D[Registra block.coinbase]
-    D --> E{É bloco de Seleção?}
-    E -- Não --> C
-    E -- Sim --> F[Verifica Inatividade]
-    F --> G{Tempo s/ propor > Threshold?}
-    G -- Sim --> H[Marca para Remoção]
-    H --> I{Restarão >= 4 Validadores?}
-    I -- Sim --> J[Remove Validador Operacional]
-    I -- Não --> K[Mantém Validador por Segurança]
-    J --> L[Atualiza nextSelectionBlock]
-    K --> L
-    L --> C
+**Observação**: Para que esse mecanismo de seleção funcione, é necessário que a [rede (Besu) seja configurada](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) para [seleção de validadores por *smart contract*](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators-using-a-smart-contract), ao invés da [seleção por cabeçalho de bloco (*block header*)](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators-using-block-headers) padrão.
