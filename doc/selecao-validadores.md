@@ -82,19 +82,18 @@ Critérios de aceitação:
 Dúvidas:
 
 1. Vamos deixar a função de monitoração "aberta" para qualquer conta executar? Valeria restringir o acesso para evitar possíveis ataques de DOS?
-
 - (Glads) O problema do ataque DoS se resolve em outra camada. O sujeito vai gastar o gas dele. Por outro lado, precisar, não precisa...
 
-1. No evento de seleção de validadores, seria interessante acrescentar alguma informação, como a lista de validadores selecionados ou ao menos a quantidade de validadores selecionados?
-
+2. No evento de seleção de validadores, seria interessante acrescentar alguma informação, como a lista de validadores selecionados ou ao menos a quantidade de validadores selecionados?
 - (Glads) A princípio, mostrar quem está participando do consenso o tempo todo é bom. Apenas se o consumo de gas for grande que eu acho que não vale, mas isso se vê mais para frente.
 - (Rayan) Acho que sim, ainda há pouca emissão de eventos (e com pouca informação) no contrato. Com certeza é um ponto de melhoria.
 
-1. Como podemos proteger a seleção de validadores de falhas mais amplas do envio de transações de monitoração (Ex.: Apenas um ou poucos partícipes enviando transações em frequência muito baixa), de forma a não causar remoção equivocada de validadores em massa?
-
+3. Como podemos proteger a seleção de validadores de falhas mais amplas do envio de transações de monitoração (Ex.: Apenas um ou poucos partícipes enviando transações em frequência muito baixa), de forma a não causar remoção equivocada de validadores em massa?
 - (Glads) Poderia guardar o número de blocos para os quais foi realizada uma chamada com sucesso no intervalo de avaliação. Se não tiver o suficiente, não executa a seleção.
 - (Glads) Um problema similar, mas menos grave é que, se há validadores fora, o intervalo aumenta de verificação aumenta. No azar de estarem em sequência, pode demorar um bocado, principalmente se o número de validadores aumentar. Por exemplo, se tivéssemos 21 validadores, poderiam cair 6. Isso dá uns bons minutos! Probabilidade de os seis caírem no mesmo intervalo talvez seja pequeno.
 - (Rayan) Acho que pode ser tratado offchain, com mecanismos de redundância. Já vamos ter pelo menos 9 casas fazendo o monitoramento (sendo que só precisamos de uma para funcionar), daí, em cada casa, podemos ter várias instâncias do componente responsável pelo envio de transações. Podemos pensar também em um mecanismo de incentivos, talvez relacionado ao gas na rede, algo como "Se você fez mais transações de monitoramento, então pode consumir mais gas na rede".
+
+4. Deve-se remover somente 1 validador a cada seleção? Isso dá mais chance de validadores eventualmente se recuperarem. Por outro lado, torna mais lenta a convergência da rede para seu valor nominal de 4s para produção de blocos.
 
 1. (Claude) O requisito não menciona o comportamento de idempotência: se `monitorsValidators()` for chamada mais de uma vez no mesmo bloco, a segunda chamada não deve alterar o estado (a implementação atual faz essa verificação). Sugiro explicitar isso como critério de aceitação.
    - (Rayan) Concordo. Temos que garantir isso para evitar gasto desnecessário de gas.
