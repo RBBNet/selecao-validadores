@@ -17,9 +17,11 @@ Critérios de aceitação:
 2. É informada uma lista de endereços de nós validadores, para que sejam considerados no consenso da rede.
    1. Ao menos 4 validadores devem ser informados.
 3. São informados os parâmetros:
-   1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores:  `blocksBetweenSelection`
+   1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores: `blocksBetweenSelection`.
+      1. Esse valor deve ser maior ou igual a 1.
    2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `blocksWithoutProposeThreshold`.
       1. Acima desse limite o validador deverá ser pré-selecionado para remoção da lista validadores operacionais.
+      2. Esse limite deve ser maior ou igual ao número de validadores elegíveis.
 4. Os validadores informados são adicionados às listas de validadores elegíveis e de validadores operacionais.
 5. A qualquer momento, todos os validadores da lista de validadores operacionais devem estar contidos também na lista de validadores elegíveis.
 6. A seleção de validadores terá dois modos de operação: `Manual` e `Automatic`.
@@ -62,6 +64,10 @@ Critérios de aceitação:
    2. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
 5. Um evento é emitido, registrando:
    1. O modo selecionado.
+
+Dúvidas:
+- Devemos sinalizar a existência de dois modos? Ou devemos apenas indicar que a seleção automática deve feita? Afinal, mesmo no modo automático as ações manuais podem ser realizadas.
+
 
 ## USSCxx - Partícipe executa monitoração para manutenção da lista de validadores operacionais
 
@@ -164,7 +170,11 @@ Critérios de aceitação:
 3. O nó informado **não** deve estar na lista de validadores elegíveis.
 4. O nó é adicionado à lista de validadores elegíveis.
 5. O nó é adicionado à lista de validadores operacionais.
-6. Um evento é emitido, registrando:
+6. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
+   1. Um evento é emitido, registrando:
+      1. O valor do parâmetro `blocksBetweenSelection`, mesmo não tedo sido alterado.
+      2. O valor do parâmetro `blocksWithoutProposeThreshold`.
+7. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
@@ -187,13 +197,22 @@ Critérios de aceitação:
 6. Um evento é emitido, registrando:
    1. O endereço do nó.
 
-## USSCxx - Governança configura parâmetro x
+## USSCxx - Governança configura parâmetros de seleção automática de validadores
 
 Critérios de aceitação:
 
 1. Somente o processo de governança pode realizar esta configuração.
+2. São informados os parâmetros:
+   1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores: `blocksBetweenSelection`.
+      1. Esse valor deve ser maior ou igual a 1.
+   2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `blocksWithoutProposeThreshold`.
+      1. Acima desse limite o validador deverá ser pré-selecionado para remoção da lista validadores operacionais.
+      2. Esse limite deve ser maior ou igual o número de validadores elegíveis.
+3. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
+4. Um evento é emitido, registrando:
+   1. O valor do parâmetro `blocksBetweenSelection`.
+   2. O valor do parâmetro `blocksWithoutProposeThreshold`.
 
-(JALOP) Nessa(s) história(s) temos que ter cuidado ao alterar um parâmetro para não quebrar premissas de funcionamento da seleção de validadores e, por consequência, quebrar a lógica desejada na execução da seleção.
 
 ## USSCxx - Governança atualiza o código *on chain* de seleção de validadores
 
