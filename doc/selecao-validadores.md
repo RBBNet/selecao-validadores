@@ -107,7 +107,7 @@ Dúvidas:
 - O evento de monitoração deve ocorrer a toda transação? Seu registro facilita a auditoria para fins de OLA. Porém essa auditoria poderia ser feita de outras formas.
 
 
-## USSCxx - Administrador ou Governaça re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente
+## USSCxx - Administrador ou Governança re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente
 
 Critérios de aceitação:
 
@@ -196,6 +196,9 @@ Critérios de aceitação:
 5. O nó é removido da lista de validadores elegíveis.
 6. Um evento é emitido, registrando:
    1. O endereço do nó.
+
+Dúvidas:
+- Seria o caso de flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo?
 
 ## USSCxx - Governança configura parâmetros de seleção automática de validadores
 
