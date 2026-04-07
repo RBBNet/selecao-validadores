@@ -1,5 +1,28 @@
 # Seleção de Validadores *on chain*
 
+## Princípios da seleção de validadores *on chain*
+
+A RBB realiza a produção de blocos através de consenso entre um conjunto pré-estabelecido de validadores, conforme protocolo [QBFT](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft). Conforme definido em seu arquivo [`genesis.json`](https://github.com/RBBNet/rbb/blob/master/artefatos/observer/genesis.json), a RBB foi inicializada com um conjunto de um único validador, utilizando a [forma de seleção de validadores](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) através de *block header*, tendo outros validadores sido adicionados e removidos posteriormente, através de [mecanismo proprietário](https://besu.hyperledger.org/private-networks/reference/api#qbft_proposevalidatorvote) do protocolo QBFT. Isto significa que, atualmente, a gestão do conjunto de validadores é feita através de API específica do Besu, *off chain*, de forma manual e sem transparência para um observador externo.
+
+O objetivo de um mecanismo de seleção de validadores *on chain* é de tornar o processo de seleção automatizável, transparente e auditável. Automatizável pois o próprio código *on chain* poderá decidir quais validadores devem participar do consenso ou não. Transparente, pois os critérios definidos para a seleção serão, obrigatoriamente, os definidos pelo código *on chain*. Auditável, pois as ações realizadas pelo código estarão devidamente registradas *on chain*.
+
+Os princípios para a seleção *on chain* são:
+- Utilização da [seleção de validadores](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) através de *smart contract*.
+- Implementação de *smart contract* para esse fim.
+- O *smart contract* gerenciará 3 conjuntos de validadores:
+  - **Validadores elegíveis** ao consenso. Somente poderão fazer parde desse conjunto validadores definidos pela [governança da RBB](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
+  - **Validadores operacionais**, que efetivamente fazem parte do consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores elegíveis.
+  - **Validadores adicionados**, contendo validadores recém adicionados ao consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores operacionais.
+  - A qualquer momento, o conjunto de validadores operacionais deverá conter ao menos 4 validadores.
+- O *smart contract* terá dois modos de funcionamento:
+  - **Manual**, onde a adição e remoção de validadores será feita de forma exclusivamente manual, através de ações da [governança](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
+  - **Automático**, de acordo com critérios bem estabelecidos, o *smart contract* poderá decidir remover automaticamente validadores (operacionais) do consenso.
+  - A qualquer momento, [administradores](https://github.com/RBBNet/Permissionamento/blob/main/gen02/doc/premissas.md#premissas) poderão efetuar adição e remoção de validadores operacionais de suas próprias organizações, desde que respeitadas as premissas estabelecidas (acima) para os conjuntos de validadores gerenciados.
+- O *smart contract* possuirá parâmetros para seleção automática de validadores:
+   - Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores. Define o tamanho de um **ciclo de monitoração automática**.
+   - Limite de blocos tolerado para que um validador permaneça sem propor blocos.
+
+
 ## USSCxx - Usuário da RBB implanta e inicializa código da seleção de validadores *on chain* para permitir migração da seleção de validadores da rede de *block header* para *smart contract*
 
 **Observações**:
@@ -14,54 +37,60 @@ Critérios de aceitação:
    1. Gestão de Administrador Master - [`AdminProxy`](https://github.com/RBBNet/Permissionamento/blob/main/gen01/contracts/AdminProxy.sol) (gen01)
    2. Gestão de contas - [`AccountRulesV2`](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/AccountRulesV2.sol) (gen02)
    3. Gestão de nós - [`NodeRulesV2`](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/NodeRulesV2.sol) (gen02)
-2. É informada uma lista de endereços de nós validadores, para que sejam considerados no consenso da rede.
+2. É informado um conjunto de endereços de nós validadores, para que sejam considerados no consenso da rede.
    1. Ao menos 4 validadores devem ser informados.
 3. São informados os parâmetros:
    1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores: `blocksBetweenSelection`.
       1. Esse valor deve ser maior ou igual a 1.
    2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `blocksWithoutProposeThreshold`.
-      1. Acima desse limite o validador deverá ser pré-selecionado para remoção da lista validadores operacionais.
+      1. Acima desse limite o validador deverá ser pré-selecionado para remoção do conjunto validadores operacionais.
       2. Esse limite deve ser maior ou igual ao número de validadores elegíveis.
-4. Os validadores informados são adicionados às listas de validadores elegíveis e de validadores operacionais.
-5. A qualquer momento, todos os validadores da lista de validadores operacionais devem estar contidos também na lista de validadores elegíveis.
-6. A seleção de validadores terá dois modos de operação: `Manual` e `Automatic`.
+4. Os validadores informados são adicionados aos conjuntos de validadores elegíveis e de validadores operacionais.
+   1. O conjunto de validadores adicionados é inicializado vazio.
+5. A qualquer momento, todos os validadores do conjunto de validadores operacionais devem estar contidos também no conjunto de validadores elegíveis.
+6. A qualquer momento, todos os validadores do conjunto de validadores adicionados devem estar contidos também no conjunto de validadores operacionais.
+7. A seleção de validadores terá dois modos de operação: `Manual` e `Automatic`.
    1. No momento da implantação do código, o modo de operação será ajustado para `Manual`.
-   2. No modo `Manual` somente ocorrerão modificações nas listas de validadores (operacionais e elegíveis) através de ação humana.
-   3. No modo `Automatic` o código poderá por selecionar e decidir remover automaticamente validadores da lista de validadores operacionais.
+   2. No modo `Manual` somente ocorrerão modificações nos conjuntos de validadores (operacionais, elegíveis e adicionados) através de ação humana.
+   3. No modo `Automatic` o código poderá por selecionar e decidir remover automaticamente validadores do conjunto de validadores operacionais.
 
 Dúvidas:
 
-- Deveríamos colocar critérios adicionais para a lista de validadores (Ex.: Têm que estar permissionados, têm que estar ativos, apenas 1 por organização, etc.)? Acho que não...
+- Deveríamos colocar critérios adicionais para o conjunto de validadores (Ex.: Têm que estar permissionados, têm que estar ativos, apenas 1 por organização, etc.)? Acho que não...
   - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
   - (Rayan) Acho que sim, estar permissionado (com checagem onchain via `NodeRulesV2`).
 - As variáveis `blocksBetweenSelection` e `blocksWithoutProposeThreshold` são diferentes mesmo? O algoritmo deve ficar mais complexo, creio. Por outro lado, é possível ser mais responsivo a quedas que ultrapassariam as fronteiras do intervalo, se o parâmetro fosse um só.
   - (Rayan) Duas variáveis torna o comportamento da seleção mais customizável e facilita alterações neste comportamento depois (se necessário). Mas também dificulta o operacional de gerir o contrato e aumenta as chances de erro humano. Para contornar isso, podemos definir uma função que alterar o valor das duas variáveis e garantir que elas sejam iguais. Mesmo que tenhamos duas variáveis, se elas tiverem sempre o mesmo valor, o contrato vai se comportar como se só houvesse uma variável.
 
+
 ## USSCxx - Besu consulta validadores operacionais para execução do algoritmo de consenso
 
 Critérios de aceitação:
 
-1. Qualquer conta ou o Besu pode consultar a lista de validadores operacionais.
-2. A lista de validadores operacionais é retornada.
+1. Qualquer conta ou o Besu pode consultar o conjunto de validadores operacionais.
+2. O conjunto de validadores operacionais é retornado.
+
 
 ## USSCxx - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso
 
 Critérios de aceitaçao:
 
-1. Qualquer conta pode consultar a lista de validadores elegíveis.
-2. A lista de validadores elegíveis é retornada.
+1. Qualquer conta pode consultar o conjunto de validadores elegíveis.
+2. O conjunto de validadores elegíveis é retornado.
+
 
 ## USSCxx - Governança altera modo de operação da seleção de validadores
 
 Critérios de aceitação:
 
-1. Somente o processo de governança pode realizar a alteração.
+1. Somente a governança pode realizar a alteração.
 2. A governança deve informar o novo modo de operação.
 3. Caso o modo de operação selecionado seja `Manual`:
    1. O modo de operação é ajustado para `Manual`.
 4. Caso o modo de operação selecionado seja `Automatic`:
    1. O modo de operação é ajustado para `Automatic`.
-   2. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
+   2. O conjunto de validadores adicionados é esvaziado.
+   3. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
 5. Um evento é emitido, registrando:
    1. O modo selecionado.
 
@@ -69,7 +98,7 @@ Dúvidas:
 - Devemos sinalizar a existência de dois modos? Ou devemos apenas indicar que a seleção automática deve feita? Afinal, mesmo no modo automático as ações manuais podem ser realizadas.
 
 
-## USSCxx - Partícipe executa monitoração para manutenção da lista de validadores operacionais
+## USSCxx - Partícipe executa monitoração para manutenção do conjunto de validadores operacionais
 
 Critérios de aceitação:
 
@@ -81,14 +110,16 @@ Critérios de aceitação:
    3. Caso seja o momento de selecionar validadores, conforme parâmetro `blocksBetweenSelection`:
       1. Verifica-se, para cada validador operacional, se ele está a mais de `blocksWithoutProposeThreshold` blocos sem propor bloco.
          1. Validadores nesta condição devem ser pré-selecionados para remoção do consenso.
-      2. Para cada validador pré-selecionado para remoção:
-         1. É verificado se ao menos 4 validadores permanecerão na lista de validadores operacionais após a exclusão do validador pré-selecionado.
-         2. Caso afirmativo:
-            1. A monitoração emite evento indicando o validador operacional a ser removido.
-            2. O validador pré-selecionado é removido como validador operacional, sendo mantido como validador elegível.
-         3. Caso negativo, o validador pré-selecionado é **mantido** como validador operacional.
-      3. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
-      4. A monitoração emite um evento indicando a realização da seleção automática de validadores informando a lista de validadores operacionais resultante.
+      2. Para cada validador pré-selecionado para remoção, verifica-se se o mesmo está contido no conjunto de validadores adicionados:
+         1. Caso afirmativo, o validador pré-selecionado é **mantido** como validador operacional.
+         2. Caso negativo, verifica-se se ao menos 4 validadores permanecerão no conjunto de validadores operacionais após a exclusão do validador pré-selecionado:
+            1. Caso afirmativo:
+               1. A monitoração emite evento indicando o validador operacional a ser removido.
+               2. O validador pré-selecionado é removido como validador operacional, sendo mantido como validador elegível.
+            2. Caso negativo, o validador pré-selecionado é **mantido** como validador operacional.
+      3. O conjunto de validadores adicionados é esvaziado.
+      4. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
+      5. A monitoração emite um evento indicando a realização da seleção automática de validadores informando o conjunto de validadores operacionais resultante.
    4. Caso contrário, a monitoração encerra.
 5. Caso contrário, a monitoração encerra.
 
@@ -96,7 +127,7 @@ Dúvidas:
 
 1. Vamos deixar a função de monitoração "aberta" para qualquer conta executar? Valeria restringir o acesso para evitar possíveis ataques de DOS?
    - A princípio esse ataque (gasto excessivo de *gas*) estará presente também através da chamada a outros contratos. Logo, não parece valer a pena implementar controle específico para esse caso.
-2. No evento de seleção de validadores, seria interessante acrescentar alguma informação, como a lista de validadores selecionados ou ao menos a quantidade de validadores selecionados?
+2. No evento de seleção de validadores, seria interessante acrescentar alguma informação, como o conjunto de validadores selecionados ou ao menos a quantidade de validadores selecionados?
    - A princípio, para fins de transparência e auditabilidade, sim. Caso se verifique que isso acarreta em alto consumo de *gas* isso poderá ser revisto.
 3. Deve-se remover somente 1 validador a cada seleção? Isso dá mais chance de validadores eventualmente se recuperarem. Por outro lado, torna mais lenta a convergência da rede para seu valor nominal de 4s para produção de blocos.
    - Decidiu-se priorizar a convergência do consenso para o valor nominal de produção de blocos, removendo-se todos os validadores inoperantes possíveis de uma vez.
@@ -107,6 +138,7 @@ Dúvidas:
 5. O evento de monitoração deve ser emitido para todas as transações ou somente no caso de ser a primeira transação de monitoração do bloco? Afinal, o registro de um evento facilitaria a auditoria (para fins de OLA), porém causaria um gasto de *gas* adicional e a auditoria poderia ser feita de outras formas.
    - De forma conceitual, a emissão do evento para toda transação parece mais adequado. Portanto, essa será a definição inicial de requisito, sendo cabíveis eventuais reavaliações no caso de testes (em tempo de desenvolvimento) comprovarem que o gasto de *gas* atinja níveis indesejados.
 
+
 ## USSCxx - Administrador ou Governança re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente
 
 Critérios de aceitação:
@@ -115,28 +147,25 @@ Critérios de aceitação:
    1. Administradores Globais ou Administradores Locais ativos, vinculados a organizações ativas.
    2. A Governança.
 2. O endereço do nó a ser re-adicionado deve ser informado.
-3. O nó informado **não** deve estar na lista de validadores operacionais.
-4. O nó informado deve estar na lista de validadores elegíveis.
+3. O nó informado **não** deve estar no conjunto de validadores operacionais.
+4. O nó informado deve estar no conjunto de validadores elegíveis.
 5. Administradores somente podem re-adicionar nós vinculados às suas organizações.
 6. A governança pode re-adicionar nós de quaisquer organizações.
-7. O nó é adicionado à lista de validadores operacionais.
-8. Um evento é emitido, registrando:
+7. O nó é adicionado ao conjunto de validadores operacionais.
+8. O nó é adicionado ao conjunto de validadores adicionados.
+9. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
 
 1. Na emissão do evento, seria o caso de identificar a organização que efetuou a ação?
   - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
-- E se o nó é adicionado justamente no momento de realizar nova seleção de validadores (e será avaliado como tendo 0 blocos)?
-  - (Glads) Uma opção seria só realmente incluí-lo no consenso no momento da seleção de validadores. Seriam três status possíveis: operacional, em espera e fora do consenso (outros nomes, talvez).
-  - (Claude) Complementando: ao re-adicionar um validador, seu `lastBlockProposedBy` permanecerá com o valor antigo (ou zero se nunca propôs). Na próxima seleção, ele será imediatamente considerado inativo e removido. É preciso inicializar `lastBlockProposedBy` ao re-adicionar (ex.: com `block.number`) ou adotar o estado intermediário que o Glads sugeriu.
-  - (Rayan) Vai depender da ordem das transações no bloco. Se a transação de monitoramento vier antes, não haverá problema. Se vier depois, o validador será incluído como operacional e removido logo em seguida. Podemos o marcar como "em espera", como o Glads sugeriu, e o adicionar no próximo bloco (via função de monitoramento).
-  - (JALOP) Criar lista de "validadores candidatos", que seriam adicionados ao consenso no momento da seleção?
-    - Essa lista também teria que ser usada na história de adição de nós elegíveis (abaixo).
-    - Ou então criar uma lista de "validadores café-com-leite", que já seriam operacionais, porém não poderiam ser pré-selecionados para remoção numa primeira seleção automática.
+2. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
+   - Foi adotada a solução do conjunto de validadores adicionados.
 - (Glads) É um pouco estranho imaginar que o sujeito pode incluir no consenso um nó que nem permissionado está, né? Mas acho que "integrar" demais pode aumentar demais a complexidade...
   - (JALOP) Dúvida semelhante à que coloquei na história abaixo - "Governança adiciona validador elegível". Mas acho que, se quisermos controle, vale fazer isso nessa outra história que mencionei, na gestão de validadores **elegíveis**. Para gestão de validadores operacionais, talvez não precise.
   - (Rayan) Acho que a depender da complexidade, vale a pena. Se não me engano, neste caso impactaria também a usabilidade o usuário (administrador, neste caso) teria que usar o `enodeHigh` e `enodeLow` para interagir com o contrato, ao invés do endereço, já que o `NodeRulesV2` trata apenas dos enodes.
+
 
 ## USSCxx - Administrador ou Governança remove validador operacional
 
@@ -146,12 +175,13 @@ Critérios de aceitação:
    1. Administradores Globais ou Administradores Locais ativos, vinculados a organizações ativas.
    2. A Governança.
 2. O endereço do nó a ser removido deve ser informado.
-3. O nó informado deve estar na lista de validadores operacionais.
+3. O nó informado deve estar no conjunto de validadores operacionais.
 4. Administradores somente podem remover nós vinculados às suas organizações.
 5. A governança pode remover nós de quaisquer organizações.
-6. O nó somente será removido se ao menos 4 validadores permanecerem na lista de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
-7. O nó é removido da lista de validadores operacionais.
-8. Um evento é emitido, registrando:
+6. O nó somente será removido se ao menos 4 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
+7. O nó é removido do conjunto de validadores operacionais.
+8. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
+9. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
@@ -161,58 +191,65 @@ Dúvidas:
 2. Na emissão do evento, seria o caso de identificar a organização que efetuou a ação?
   - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 
+
 ## USSCxx - Governança adiciona validador elegível
 
 Critérios de aceitação:
 
-1. Somente o processo de governança pode realizar a adição.
+1. Somente a governança pode realizar a adição.
 2. A governança deve informar o endereço do nó a ser adicionado.
-3. O nó informado **não** deve estar na lista de validadores elegíveis.
-4. O nó é adicionado à lista de validadores elegíveis.
-5. O nó é adicionado à lista de validadores operacionais.
-6. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
+3. O nó informado **não** deve estar no conjunto de validadores elegíveis.
+4. O nó é adicionado ao conjunto de validadores elegíveis.
+5. O nó é adicionado ao conjunto de validadores operacionais.
+6. O nó é adicionado ao conjunto de validadores adicionados.
+7. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
    1. Um evento é emitido, registrando:
       1. O valor do parâmetro `blocksBetweenSelection`, mesmo não tedo sido alterado.
       2. O valor do parâmetro `blocksWithoutProposeThreshold`.
-7. Um evento é emitido, registrando:
+8. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
 
+1. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
+   - Foi adotada a solução do conjunto de validadores adicionados.
 - Deveríamos colocar critérios adicionais para o novo nó (Ex.: tem que estar permissionado, tem que estar ativo, apenas 1 por organização, etc.)? Acho que não...
   - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
   - Acho que podemos adicionar a verificação de permissionamento via `NodeRulesV2`.
-- Atenção caso venhamos a optar pela lista de "validadores candidatos" ou "validadores café-com-leite".
+
 
 ## USSCxx - Governança remove validador elegível
 
 Critérios de aceitação:
 
-1. Somente o processo de governança pode realizar a remoção.
+1. Somente a governança pode realizar a remoção.
 2. A governança deve informar o endereço do nó a ser removido.
-3. O nó informado deve estar na lista de validadores elegíveis.
-4. O nó é removido da lista de validadores operacionais, se estiver nessa lista.
-   1. O nó somente será removido se ao menos 4 validadores permanecerem na lista de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
-5. O nó é removido da lista de validadores elegíveis.
-6. Um evento é emitido, registrando:
+3. O nó informado deve estar no conjunto de validadores elegíveis.
+4. O nó é removido do conjunto de validadores operacionais, se estiver nesse conjunto.
+   1. O nó somente será removido se ao menos 4 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
+5. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
+6. O nó é removido do conjunto de validadores elegíveis.
+7. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
 - Seria o caso de flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo?
 
+
 ## USSCxx - Governança configura parâmetros de seleção automática de validadores
 
 Critérios de aceitação:
 
-1. Somente o processo de governança pode realizar esta configuração.
+1. Somente a governança pode realizar esta configuração.
 2. São informados os parâmetros:
    1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores: `blocksBetweenSelection`.
       1. Esse valor deve ser maior ou igual a 1.
    2. Limite de blocos tolerado para que um validador permaneça sem propor blocos: `blocksWithoutProposeThreshold`.
-      1. Acima desse limite o validador deverá ser pré-selecionado para remoção da lista validadores operacionais.
+      1. Acima desse limite o validador deverá ser pré-selecionado para remoção do conjunto validadores operacionais.
       2. Esse limite deve ser maior ou igual o número de validadores elegíveis.
-3. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
-4. Um evento é emitido, registrando:
+3. O conjunto de validadores adicionados é esvaziado.
+4. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
+5. Um evento é emitido, registrando:
    1. O valor do parâmetro `blocksBetweenSelection`.
    2. O valor do parâmetro `blocksWithoutProposeThreshold`.
 
@@ -221,7 +258,7 @@ Critérios de aceitação:
 
 Critérios de aceitação:
 
-1. Somente o processo de governança pode realizar esta configuração.
+1. Somente a governança pode realizar esta configuração.
 
 Dúvidas:
 
