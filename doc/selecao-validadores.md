@@ -196,16 +196,17 @@ Dúvidas:
 Critérios de aceitação:
 
 1. Somente a governança pode realizar a adição.
-2. A governança deve informar o endereço do nó a ser adicionado.
+2. A governança deve informar o endereço do nó a ser adicionado e se o nó deve automaticamente também ser adicionado como validador operacional.
 3. O nó informado **não** deve estar no conjunto de validadores elegíveis.
 4. O nó é adicionado ao conjunto de validadores elegíveis.
-5. O nó é adicionado ao conjunto de validadores operacionais.
-6. O nó é adicionado ao conjunto de validadores adicionados.
-7. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
+5. Caso seja indicado que o nó deve ser automaticamente adicionado como validador operacional:
+   1. O nó é adicionado ao conjunto de validadores operacionais.
+   2. O nó é adicionado ao conjunto de validadores adicionados.
+6. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
    1. Um evento é emitido, registrando:
       1. O valor do parâmetro `blocksBetweenSelection`, mesmo não tedo sido alterado.
       2. O valor do parâmetro `blocksWithoutProposeThreshold`.
-8. Um evento é emitido, registrando:
+7. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 Dúvidas:
@@ -214,7 +215,8 @@ Dúvidas:
    - Foi adotada a solução do conjunto de validadores adicionados.
 2. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
   - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
-- Seria o caso de flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo?
+3. É o caso de se flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo? Atualmente o processo de governança, sempre que decide pela inclusão de um novo validador ao consenso da rede, o faz de maneira imediata e efetiva.
+  - Avaliou-se que, apesar de pouco provável que a flexibilidade seja necessária, sua implementação é simples e permite que possíveis alterações futuras de processo de governança sejam implementadas sem que sejam necessário atualizar o *smart contract*.
 
 
 ## USSCxx - Governança remove validador elegível
