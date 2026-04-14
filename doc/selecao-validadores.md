@@ -228,7 +228,8 @@ Critérios de aceitação:
    1. O nó somente será removido se ao menos 4 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
 5. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
 6. O nó é removido do conjunto de validadores elegíveis.
-7. Um evento é emitido, registrando:
+7. Informações de controle referente ao validador removido, utilizadas no ciclo de monitoração, são apagadas.
+8. Um evento é emitido, registrando:
    1. O endereço do nó.
 
 
