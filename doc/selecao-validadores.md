@@ -56,11 +56,10 @@ Critérios de aceitação:
 
 Dúvidas:
 
-- Deveríamos colocar critérios adicionais para o conjunto de validadores (Ex.: Têm que estar permissionados, têm que estar ativos, apenas 1 por organização, etc.)? Acho que não...
-  - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
-  - (Rayan) Acho que sim, estar permissionado (com checagem onchain via `NodeRulesV2`).
-- As variáveis `blocksBetweenSelection` e `blocksWithoutProposeThreshold` são diferentes mesmo? O algoritmo deve ficar mais complexo, creio. Por outro lado, é possível ser mais responsivo a quedas que ultrapassariam as fronteiras do intervalo, se o parâmetro fosse um só.
-  - (Rayan) Duas variáveis torna o comportamento da seleção mais customizável e facilita alterações neste comportamento depois (se necessário). Mas também dificulta o operacional de gerir o contrato e aumenta as chances de erro humano. Para contornar isso, podemos definir uma função que alterar o valor das duas variáveis e garantir que elas sejam iguais. Mesmo que tenhamos duas variáveis, se elas tiverem sempre o mesmo valor, o contrato vai se comportar como se só houvesse uma variável.
+1. Deveríamos colocar critérios adicionais para validar o conjunto de validadores, como, por exemplo, verificar que estão devidamente permissionados, que estão ativos, que há apenas 1 por organização, etc?
+  - Seriam implementações possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
+2. Ao invés de utilizar 2 parâmetros - `blocksBetweenSelection` e `blocksWithoutProposeThreshold` - seria o caso de utilizar apenas um para controlar o ciclo de monitoração? Com 2 parâmetros o algoritmo, apesar de mais flexível e responsivo (quedas que ultrapassem o ciclo), não fica mais complexo?
+  - Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
 
 ## USSCxx - Besu consulta validadores operacionais para execução do algoritmo de consenso
@@ -95,7 +94,8 @@ Critérios de aceitação:
    1. O modo selecionado.
 
 Dúvidas:
-- Devemos sinalizar a existência de dois modos? Ou devemos apenas indicar que a seleção automática deve feita? Afinal, mesmo no modo automático as ações manuais podem ser realizadas.
+1. Devemos manter a semântica de dois modos ou devemos apenas indicar quando a seleção automática estiver ligada ou desligada? Afinal, mesmo no modo automático as ações manuais podem ser realizadas.
+   - Avaliou-se que, do ponto de vista de implementação, há pouca diferença entre usar "uma variável de estado" ou "uma *flag* de funcionalidade". Por outro lado, a semântica de "estado de operação" pareceu ser apropriada para representar o funcionamento do *smart contract* e, portanto, foi mantida.
 
 
 ## USSCxx - Partícipe executa monitoração para manutenção do conjunto de validadores operacionais
@@ -162,9 +162,8 @@ Dúvidas:
   - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 2. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
    - Foi adotada a solução do conjunto de validadores adicionados.
-- (Glads) É um pouco estranho imaginar que o sujeito pode incluir no consenso um nó que nem permissionado está, né? Mas acho que "integrar" demais pode aumentar demais a complexidade...
-  - (JALOP) Dúvida semelhante à que coloquei na história abaixo - "Governança adiciona validador elegível". Mas acho que, se quisermos controle, vale fazer isso nessa outra história que mencionei, na gestão de validadores **elegíveis**. Para gestão de validadores operacionais, talvez não precise.
-  - (Rayan) Acho que a depender da complexidade, vale a pena. Se não me engano, neste caso impactaria também a usabilidade o usuário (administrador, neste caso) teria que usar o `enodeHigh` e `enodeLow` para interagir com o contrato, ao invés do endereço, já que o `NodeRulesV2` trata apenas dos enodes.
+3. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
+  - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
 
 
 ## USSCxx - Administrador ou Governança remove validador operacional
@@ -213,9 +212,9 @@ Dúvidas:
 
 1. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
    - Foi adotada a solução do conjunto de validadores adicionados.
-- Deveríamos colocar critérios adicionais para o novo nó (Ex.: tem que estar permissionado, tem que estar ativo, apenas 1 por organização, etc.)? Acho que não...
-  - A depender dos critérios, talvez tenhamos que receber as chaves públicas e não os endereços.
-  - Acho que podemos adicionar a verificação de permissionamento via `NodeRulesV2`.
+2. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
+  - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
+- Seria o caso de flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo?
 
 
 ## USSCxx - Governança remove validador elegível
@@ -231,9 +230,6 @@ Critérios de aceitação:
 6. O nó é removido do conjunto de validadores elegíveis.
 7. Um evento é emitido, registrando:
    1. O endereço do nó.
-
-Dúvidas:
-- Seria o caso de flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo?
 
 
 ## USSCxx - Governança configura parâmetros de seleção automática de validadores
