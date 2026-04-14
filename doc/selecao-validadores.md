@@ -1,6 +1,6 @@
 # Seleção de Validadores *on chain*
 
-## Princípios da seleção de validadores *on chain*
+## Princípios da seleção de validadores *on chain*<a id="principios"></a>
 
 A RBB realiza a produção de blocos através de consenso entre um conjunto pré-estabelecido de validadores, conforme protocolo [QBFT](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft). Conforme definido em seu arquivo [`genesis.json`](https://github.com/RBBNet/rbb/blob/master/artefatos/observer/genesis.json), a RBB foi inicializada com um conjunto de um único validador, utilizando a [forma de seleção de validadores](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) através de *block header*, tendo outros validadores sido adicionados e removidos posteriormente, através de [mecanismo proprietário](https://besu.hyperledger.org/private-networks/reference/api#qbft_proposevalidatorvote) do protocolo QBFT. Isto significa que, atualmente, a gestão do conjunto de validadores é feita através de API específica do Besu, *off chain*, de forma manual e sem transparência para um observador externo.
 
@@ -23,7 +23,7 @@ Os princípios para a seleção *on chain* são:
    - Limite de blocos tolerado para que um validador permaneça sem propor blocos.
 
 
-## USSCxx - Usuário da RBB implanta e inicializa código da seleção de validadores *on chain* para permitir migração da seleção de validadores da rede de *block header* para *smart contract*
+## USSV01 - Usuário da RBB implanta e inicializa código da seleção de validadores *on chain* para permitir migração da seleção de validadores da rede de *block header* para *smart contract*<a id="ussv01"></a>
 
 **Observações**:
 
@@ -62,7 +62,7 @@ Dúvidas:
   - Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
 
-## USSCxx - Besu consulta validadores operacionais para execução do algoritmo de consenso
+## USSV02 - Besu consulta validadores operacionais para execução do algoritmo de consenso<a id="ussv02"></a>
 
 Critérios de aceitação:
 
@@ -70,7 +70,7 @@ Critérios de aceitação:
 2. O conjunto de validadores operacionais é retornado.
 
 
-## USSCxx - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso
+## USSV03 - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso<a id="ussv03"></a>
 
 Critérios de aceitaçao:
 
@@ -78,7 +78,7 @@ Critérios de aceitaçao:
 2. O conjunto de validadores elegíveis é retornado.
 
 
-## USSCxx - Governança altera modo de operação da seleção de validadores
+## USSV04 - Governança altera modo de operação da seleção de validadores<a id="ussv04"></a>
 
 Critérios de aceitação:
 
@@ -98,7 +98,7 @@ Dúvidas:
    - Avaliou-se que, do ponto de vista de implementação, há pouca diferença entre usar "uma variável de estado" ou "uma *flag* de funcionalidade". Por outro lado, a semântica de "estado de operação" pareceu ser apropriada para representar o funcionamento do *smart contract* e, portanto, foi mantida.
 
 
-## USSCxx - Partícipe executa monitoração para manutenção do conjunto de validadores operacionais
+## USSV05 - Partícipe executa monitoração para manutenção do conjunto de validadores operacionais<a id="ussv05"></a>
 
 Critérios de aceitação:
 
@@ -139,7 +139,7 @@ Dúvidas:
    - De forma conceitual, a emissão do evento para toda transação parece mais adequado. Portanto, essa será a definição inicial de requisito, sendo cabíveis eventuais reavaliações no caso de testes (em tempo de desenvolvimento) comprovarem que o gasto de *gas* atinja níveis indesejados.
 
 
-## USSCxx - Administrador ou Governança re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente
+## USSV06 - Administrador ou Governança re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente<a id="ussv06"></a>
 
 Critérios de aceitação:
 
@@ -166,7 +166,7 @@ Dúvidas:
   - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
 
 
-## USSCxx - Administrador ou Governança remove validador operacional
+## USSV07 - Administrador ou Governança remove validador operacional<a id="ussv07"></a>
 
 Critérios de aceitação:
 
@@ -191,7 +191,7 @@ Dúvidas:
   - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 
 
-## USSCxx - Governança adiciona validador elegível
+## USSV08 - Governança adiciona validador elegível<a id="ussv08"></a>
 
 Critérios de aceitação:
 
@@ -219,7 +219,7 @@ Dúvidas:
   - Avaliou-se que, apesar de pouco provável que a flexibilidade seja necessária, sua implementação é simples e permite que possíveis alterações futuras de processo de governança sejam implementadas sem que sejam necessário atualizar o *smart contract*.
 
 
-## USSCxx - Governança remove validador elegível
+## USSV09 - Governança remove validador elegível<a id="ussv09"></a>
 
 Critérios de aceitação:
 
@@ -235,7 +235,7 @@ Critérios de aceitação:
    1. O endereço do nó.
 
 
-## USSCxx - Governança configura parâmetros de seleção automática de validadores
+## USSV10 - Governança configura parâmetros de seleção automática de validadores<a id="ussv10"></a>
 
 Critérios de aceitação:
 
@@ -253,7 +253,7 @@ Critérios de aceitação:
    2. O valor do parâmetro `blocksWithoutProposeThreshold`.
 
 
-## USSCxx - Governança atualiza o código *on chain* de seleção de validadores
+## USSV11 - Governança atualiza o código *on chain* de seleção de validadores<a id="ussv11"></a>
 
 Critérios de aceitação:
 
