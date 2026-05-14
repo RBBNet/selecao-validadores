@@ -7,6 +7,7 @@ A RBB realiza a produção de blocos através de consenso entre um conjunto pré
 O objetivo de um mecanismo de seleção de validadores *on chain* é de tornar o processo de seleção automatizável, transparente e auditável. Automatizável pois o próprio código *on chain* poderá decidir quais validadores devem participar do consenso ou não. Transparente, pois os critérios definidos para a seleção serão, obrigatoriamente, os definidos pelo código *on chain*. Auditável, pois as ações realizadas pelo código estarão devidamente registradas *on chain*.
 
 Os princípios para a seleção *on chain* são:
+
 - Utilização da [seleção de validadores](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) através de *smart contract*.
 - Implementação de *smart contract* para esse fim.
 - O *smart contract* gerenciará 3 conjuntos de validadores:
@@ -19,9 +20,8 @@ Os princípios para a seleção *on chain* são:
   - **Automático**, de acordo com critérios bem estabelecidos, o *smart contract* poderá decidir remover automaticamente validadores (operacionais) do consenso.
   - A qualquer momento, [administradores](https://github.com/RBBNet/Permissionamento/blob/main/gen02/doc/premissas.md#premissas) poderão efetuar adição e remoção de validadores operacionais de suas próprias organizações, desde que respeitadas as premissas estabelecidas (acima) para os conjuntos de validadores gerenciados.
 - O *smart contract* possuirá parâmetros para seleção automática de validadores:
-   - Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores. Define o tamanho de um **ciclo de monitoração automática**.
-   - Limite de blocos tolerado para que um validador permaneça sem propor blocos.
-
+  - Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores. Define o tamanho de um **ciclo de monitoração automática**.
+  - Limite de blocos tolerado para que um validador permaneça sem propor blocos.
 
 ## USSV01 - Usuário da RBB implanta e inicializa código da seleção de validadores *on chain* para permitir migração da seleção de validadores da rede de *block header* para *smart contract*<a id="ussv01"></a>
 
@@ -57,10 +57,12 @@ Critérios de aceitação:
 Dúvidas:
 
 1. Deveríamos colocar critérios adicionais para validar o conjunto de validadores, como, por exemplo, verificar que estão devidamente permissionados, que estão ativos, que há apenas 1 por organização, etc?
-  - Seriam implementações possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
-2. Ao invés de utilizar 2 parâmetros - `blocksBetweenSelection` e `blocksWithoutProposeThreshold` - seria o caso de utilizar apenas um para controlar o ciclo de monitoração? Com 2 parâmetros o algoritmo, apesar de mais flexível e responsivo (quedas que ultrapassem o ciclo), não fica mais complexo?
-  - Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
+- Seriam implementações possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
+
+2. Ao invés de utilizar 2 parâmetros - `blocksBetweenSelection` e `blocksWithoutProposeThreshold` - seria o caso de utilizar apenas um para controlar o ciclo de monitoração? Com 2 parâmetros o algoritmo, apesar de mais flexível e responsivo (quedas que ultrapassem o ciclo), não fica mais complexo?
+
+- Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
 ## USSV02 - Besu consulta validadores operacionais para execução do algoritmo de consenso<a id="ussv02"></a>
 
@@ -69,14 +71,12 @@ Critérios de aceitação:
 1. Qualquer conta ou o Besu pode consultar o conjunto de validadores operacionais.
 2. O conjunto de validadores operacionais é retornado.
 
-
 ## USSV03 - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso<a id="ussv03"></a>
 
 Critérios de aceitaçao:
 
 1. Qualquer conta pode consultar o conjunto de validadores elegíveis.
 2. O conjunto de validadores elegíveis é retornado.
-
 
 ## USSV04 - Governança altera modo de operação da seleção de validadores<a id="ussv04"></a>
 
@@ -94,9 +94,9 @@ Critérios de aceitação:
    1. O modo selecionado.
 
 Dúvidas:
+
 1. Devemos manter a semântica de dois modos ou devemos apenas indicar quando a seleção automática estiver ligada ou desligada? Afinal, mesmo no modo automático as ações manuais podem ser realizadas.
    - Avaliou-se que, do ponto de vista de implementação, há pouca diferença entre usar "uma variável de estado" ou "uma *flag* de funcionalidade". Por outro lado, a semântica de "estado de operação" pareceu ser apropriada para representar o funcionamento do *smart contract* e, portanto, foi mantida.
-
 
 ## USSV05 - Partícipe executa monitoração para manutenção do conjunto de validadores operacionais<a id="ussv05"></a>
 
@@ -121,7 +121,7 @@ Critérios de aceitação:
       4. Informações de produção de blocos pelos validadores são inicializadas e um novo ciclo de monitoração automática é iniciado.
       5. A monitoração emite um evento indicando a realização da seleção automática de validadores informando o conjunto de validadores operacionais resultante.
    4. Caso contrário, a monitoração encerra.
-5. Caso contrário, a monitoração encerra.
+4. Caso contrário, a monitoração encerra.
 
 Dúvidas:
 
@@ -137,7 +137,6 @@ Dúvidas:
    - Dada a avaliação de baixa probabilidade de ocorrência de falha generalizada, do aumento de complexidade de implementação e da salva-guarda de que, mesmo em caso de falha generalizada, no pior caso, a rede se manter funcionando com 4 validadores, optou-se por não implementar mecanismos de proteção contra falhas de monitoração.
 5. O evento de monitoração deve ser emitido para todas as transações ou somente no caso de ser a primeira transação de monitoração do bloco? Afinal, o registro de um evento facilitaria a auditoria (para fins de OLA), porém causaria um gasto de *gas* adicional e a auditoria poderia ser feita de outras formas.
    - De forma conceitual, a emissão do evento para toda transação parece mais adequado. Portanto, essa será a definição inicial de requisito, sendo cabíveis eventuais reavaliações no caso de testes (em tempo de desenvolvimento) comprovarem que o gasto de *gas* atinja níveis indesejados.
-
 
 ## USSV06 - Administrador ou Governança re-adiciona validador elegível como validador operacional para tornar consenso da rede mais resiliente<a id="ussv06"></a>
 
@@ -159,12 +158,14 @@ Critérios de aceitação:
 Dúvidas:
 
 1. Na emissão do evento, seria o caso de identificar a organização que efetuou a ação?
-  - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
+
+- Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
+
 2. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
    - Foi adotada a solução do conjunto de validadores adicionados.
-3. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
-  - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
+2. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
 
+- Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
 
 ## USSV07 - Administrador ou Governança remove validador operacional<a id="ussv07"></a>
 
@@ -188,8 +189,8 @@ Dúvidas:
 1. Faz sentido implementar função para remoção de validador operacional?
    - Sim. A função pode ser usada em casos como de manutenção programada, onde o nó já vai ficar indisponível e, ao invés de esperar remoção via monitoramento, é possível remover o nó imediatamente.
 2. Na emissão do evento, seria o caso de identificar a organização que efetuou a ação?
-  - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 
+- Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 
 ## USSV08 - Governança adiciona validador elegível<a id="ussv08"></a>
 
@@ -214,10 +215,12 @@ Dúvidas:
 1. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
    - Foi adotada a solução do conjunto de validadores adicionados.
 2. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
-  - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
-3. É o caso de se flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo? Atualmente o processo de governança, sempre que decide pela inclusão de um novo validador ao consenso da rede, o faz de maneira imediata e efetiva.
-  - Avaliou-se que, apesar de pouco provável que a flexibilidade seja necessária, sua implementação é simples e permite que possíveis alterações futuras de processo de governança sejam implementadas sem que sejam necessário atualizar o *smart contract*.
 
+- Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
+
+3. É o caso de se flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo? Atualmente o processo de governança, sempre que decide pela inclusão de um novo validador ao consenso da rede, o faz de maneira imediata e efetiva.
+
+- Avaliou-se que, apesar de pouco provável que a flexibilidade seja necessária, sua implementação é simples e permite que possíveis alterações futuras de processo de governança sejam implementadas sem que sejam necessário atualizar o *smart contract*.
 
 ## USSV09 - Governança remove validador elegível<a id="ussv09"></a>
 
@@ -233,7 +236,6 @@ Critérios de aceitação:
 7. Informações de controle referente ao validador removido, utilizadas no ciclo de monitoração, são apagadas.
 8. Um evento é emitido, registrando:
    1. O endereço do nó.
-
 
 ## USSV10 - Governança configura parâmetros de seleção automática de validadores<a id="ussv10"></a>
 
@@ -252,15 +254,30 @@ Critérios de aceitação:
    1. O valor do parâmetro `blocksBetweenSelection`.
    2. O valor do parâmetro `blocksWithoutProposeThreshold`.
 
-
 ## USSV11 - Governança atualiza o código *on chain* de seleção de validadores<a id="ussv11"></a>
+
+**Observações**:
+
+- O novo contrato de seleção de validadores já deve ter sido implantado.
+- O novo contrato de seleção de validadores deve implementar a função `getActiveValidators()`.
 
 Critérios de aceitação:
 
 1. Somente a governança pode realizar esta configuração.
+2. Governança informa o endereço do novo contrato de seleção de validadores.
+   1. Este endereço deve ser diferente do endereço corrente e deve ser não nulo.
+3. O endereço do contrato de seleção validadores corrente é atualizado.
+4. Um evento é emitido, registrando:
+   1. O endereço do novo contrato de seleção de validadores.
 
 Dúvidas:
 
 - (Claude) Este requisito está muito enxuto. A implementação usa padrão UUPS (`UUPSUpgradeable`), o que seria bom mencionar. Além disso, poderia explicitar: (a) que a atualização requer deploy de nova implementação + chamada a `upgradeToAndCall`, (b) que a autorização é via `_authorizeUpgrade` restrita à governança, (c) se deve haver emissão de evento registrando a versão antiga e nova.
 - (JALOP) Nessa história temos que decidir que mecanismo vamos querer utilizar para fazer eventuais [atualizações de código](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/#data-separation).
   - (Rayan) Inicialmente, adotamos o método 3 (seguindo esta documentação), mas com certeza vale a pena retomar essa conversa.
+- Considerando esta [documentação](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/), fizemos as seguintes considerações para a escolha do método de atualização ideal para o projeto:
+   - O método de atualização não deve gerar uma _transition_ (_hard-fork_) na rede.
+   - Atualizações de contrato devem ser eventos que ocorrem com baixa frequência, assim, o custo de gas associado ao método de atualização tem baixa relevância para a escolha do método.
+   - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
+   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
+- (Rayan) Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
