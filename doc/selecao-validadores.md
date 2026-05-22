@@ -272,12 +272,11 @@ Critérios de aceitação:
 
 Dúvidas:
 
-- (Claude) Este requisito está muito enxuto. A implementação usa padrão UUPS (`UUPSUpgradeable`), o que seria bom mencionar. Além disso, poderia explicitar: (a) que a atualização requer deploy de nova implementação + chamada a `upgradeToAndCall`, (b) que a autorização é via `_authorizeUpgrade` restrita à governança, (c) se deve haver emissão de evento registrando a versão antiga e nova.
-- (JALOP) Nessa história temos que decidir que mecanismo vamos querer utilizar para fazer eventuais [atualizações de código](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/#data-separation).
-  - (Rayan) Inicialmente, adotamos o método 3 (seguindo esta documentação), mas com certeza vale a pena retomar essa conversa.
 - Considerando esta [documentação](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/), fizemos as seguintes considerações para a escolha do método de atualização ideal para o projeto:
   - O método de atualização não deve gerar uma *transition* (*hard-fork*) na rede.
   - Atualizações de contrato devem ser eventos que ocorrem com baixa frequência, assim, o custo de gas associado ao método de atualização tem baixa relevância para a escolha do método.
   - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
-- (Rayan) Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
+- Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
+   - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
+   - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
