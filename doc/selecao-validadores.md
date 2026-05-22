@@ -268,7 +268,7 @@ Critérios de aceitação:
    1. Este endereço deve ser diferente do endereço corrente e deve ser não nulo.
    2. É validado que este endereço implementa a função `getActiveValidators()`.
       1. Caso contrário, a história é encerrada com erro.
-   3. É validado que este endereço retorna uma lista de pelo menos 4 validadores operacionais quando `getActiveValidators()` é invocada.
+   3. É validado que este endereço retorna uma lista de tamanho pelo menos 4 quando `getActiveValidators()` é invocada.
       1. Caso contrário, a história é encerrada com erro.
 3. O endereço do contrato de seleção validadores corrente é atualizado.
 4. Um evento é emitido, registrando:
@@ -284,3 +284,4 @@ Dúvidas:
 - Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
    - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
    - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
+- (Rayan) Devemos validar se a lista retornada pela função `getActiveValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
