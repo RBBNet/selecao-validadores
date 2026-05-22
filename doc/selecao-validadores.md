@@ -60,7 +60,7 @@ Dúvidas:
 
 - Seriam implementações possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
 
-2. Ao invés de utilizar 2 parâmetros - `blocksBetweenSelection` e `blocksWithoutProposeThreshold` - seria o caso de utilizar apenas um para controlar o ciclo de monitoração? Com 2 parâmetros o algoritmo, apesar de mais flexível e responsivo (quedas que ultrapassem o ciclo), não fica mais complexo?
+1. Ao invés de utilizar 2 parâmetros - `blocksBetweenSelection` e `blocksWithoutProposeThreshold` - seria o caso de utilizar apenas um para controlar o ciclo de monitoração? Com 2 parâmetros o algoritmo, apesar de mais flexível e responsivo (quedas que ultrapassem o ciclo), não fica mais complexo?
 
 - Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
@@ -161,7 +161,7 @@ Dúvidas:
 
 - Até faz sentido no caso de um administrador efetuar a ação. Porém não faz sentido no caso da governança realizar a ação. Portanto, por simplificação, a informação da organização envolvida, não será registrada.
 
-2. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
+1. Como garantir que um validador adicionado ao fim de um ciclo de monitoração automática não seja automaticamente removido por não ter tido tempo de produzir blocos?
    - Foi adotada a solução do conjunto de validadores adicionados.
 2. Deveríamos colocar critérios adicionais para validar o endereço adicionado, como, por exemplo, verificar que está devidamente permissionado ou que está ativo?
 
@@ -218,7 +218,7 @@ Dúvidas:
 
 - Várias implementações seriam possíveis, porém gerariam grande acoplamento com outros *smart contracts* e aumentariam a complexidade de implementação. Avaliou-se que tais desvantagens não compensariam a vantagem de minimizar eventuais erros operacionais de se cadastrar endereços inválidos.
 
-3. É o caso de se flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo? Atualmente o processo de governança, sempre que decide pela inclusão de um novo validador ao consenso da rede, o faz de maneira imediata e efetiva.
+1. É o caso de se flexibilizar a inclusão de validadores elegíveis sem obrigatoriamente torná-los operacionais ao mesmo tempo? Atualmente o processo de governança, sempre que decide pela inclusão de um novo validador ao consenso da rede, o faz de maneira imediata e efetiva.
 
 - Avaliou-se que, apesar de pouco provável que a flexibilidade seja necessária, sua implementação é simples e permite que possíveis alterações futuras de processo de governança sejam implementadas sem que sejam necessário atualizar o *smart contract*.
 
@@ -276,8 +276,8 @@ Dúvidas:
 - (JALOP) Nessa história temos que decidir que mecanismo vamos querer utilizar para fazer eventuais [atualizações de código](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/#data-separation).
   - (Rayan) Inicialmente, adotamos o método 3 (seguindo esta documentação), mas com certeza vale a pena retomar essa conversa.
 - Considerando esta [documentação](https://ethereum.org/pt-br/developers/docs/smart-contracts/upgrading/), fizemos as seguintes considerações para a escolha do método de atualização ideal para o projeto:
-   - O método de atualização não deve gerar uma _transition_ (_hard-fork_) na rede.
-   - Atualizações de contrato devem ser eventos que ocorrem com baixa frequência, assim, o custo de gas associado ao método de atualização tem baixa relevância para a escolha do método.
-   - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
-   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
+  - O método de atualização não deve gerar uma *transition* (*hard-fork*) na rede.
+  - Atualizações de contrato devem ser eventos que ocorrem com baixa frequência, assim, o custo de gas associado ao método de atualização tem baixa relevância para a escolha do método.
+  - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
+  - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
 - (Rayan) Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
