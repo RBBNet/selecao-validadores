@@ -266,6 +266,10 @@ Critérios de aceitação:
 1. Somente a governança pode realizar esta configuração.
 2. Governança informa o endereço do novo contrato de seleção de validadores.
    1. Este endereço deve ser diferente do endereço corrente e deve ser não nulo.
+   2. É validado que este endereço implementa a função `getActiveValidators()`.
+      1. Caso contrário, a história é encerrada com erro.
+   3. É validado que este endereço retorna uma lista de pelo menos 4 validadores operacionais quando `getActiveValidators()` é invocada.
+      1. Caso contrário, a história é encerrada com erro.
 3. O endereço do contrato de seleção validadores corrente é atualizado.
 4. Um evento é emitido, registrando:
    1. O endereço do novo contrato de seleção de validadores.
