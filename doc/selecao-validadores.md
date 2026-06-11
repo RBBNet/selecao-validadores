@@ -259,16 +259,16 @@ Critérios de aceitação:
 **Observações**:
 
 - O novo contrato de seleção de validadores já deve ter sido implantado.
-- O novo contrato de seleção de validadores deve implementar a função `getActiveValidators()`.
+- O novo contrato de seleção de validadores deve implementar a função `getValidators()`.
 
 Critérios de aceitação:
 
 1. Somente a governança pode realizar esta configuração.
 2. Governança informa o endereço do novo contrato de seleção de validadores.
    1. Este endereço deve ser diferente do endereço corrente e deve ser não nulo.
-   2. É validado que este endereço implementa a função `getActiveValidators()`.
+   2. É validado que este endereço implementa a função `getValidators()`.
       1. Caso contrário, a história é encerrada com erro.
-   3. É validado que este endereço retorna uma lista de tamanho pelo menos 4 quando `getActiveValidators()` é invocada.
+   3. É validado que este endereço retorna uma lista de tamanho pelo menos 4 quando `getValidators()` é invocada.
       1. Caso contrário, a história é encerrada com erro.
 3. O endereço do contrato de seleção validadores corrente é atualizado.
 4. Um evento é emitido, registrando:
@@ -281,10 +281,10 @@ Dúvidas:
   - Atualizações de contrato devem ser eventos que ocorrem com baixa frequência, assim, o custo de gas associado ao método de atualização tem baixa relevância para a escolha do método.
   - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
-- Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
+- Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getValidators()`?
   - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
   - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
-- (Rayan) Devemos validar se a lista retornada pela função `getActiveValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
+- (Rayan) Devemos validar se a lista retornada pela função `getValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
 
 ## USSV12 - Usuário da RBB consulta se o contrato de seleção de validadores implementa uma interface especificada<a id="ussv12"></a>
 
