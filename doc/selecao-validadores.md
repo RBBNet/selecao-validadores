@@ -230,7 +230,7 @@ Critérios de aceitação:
 2. A governança deve informar o endereço do nó a ser removido.
 3. O nó informado deve estar no conjunto de validadores elegíveis.
 4. O nó é removido do conjunto de validadores operacionais, se estiver nesse conjunto.
-   1. O nó somente será removido se ao menos 4 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
+   1. O nó somente será removido se ao menos 1 validador permanecer no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
 5. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
 6. O nó é removido do conjunto de validadores elegíveis.
 7. Informações de controle referente ao validador removido, utilizadas no ciclo de monitoração, são apagadas.
@@ -282,6 +282,18 @@ Dúvidas:
   - Há a preferencia por métodos de atualização mais simples, buscando facilitar revisão e implementação do contrato e sua operação.
   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
 - Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getActiveValidators()`?
-   - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
-   - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
+  - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
+  - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
 - (Rayan) Devemos validar se a lista retornada pela função `getActiveValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
+
+## USSV12 - Usuário da RBB consulta se o contrato de seleção de validadores implementa uma interface especificada<a id="ussv12"></a>
+
+**Observações**:
+
+- É recomendado que seja implementado seguindo o [ERC-165](https://eips.ethereum.org/EIPS/eip-165)
+
+1. Qualquer conta pode realizar essa história.
+2. Usuário da RBB informa um [`interfaceId`](https://docs.soliditylang.org/en/latest/units-and-global-variables.html#type-information).
+3. É verificado se o contrato implementa a interface que possui o `interfaceId` correspondente.
+   1. Se implementa, então é retornado `true`.
+   2. Caso contrário, então é retornado `false`.
