@@ -11,7 +11,7 @@ Os princípios para a seleção *on chain* são:
 - Utilização da [seleção de validadores](https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#add-and-remove-validators) através de *smart contract*.
 - Implementação de *smart contract* para esse fim.
 - O *smart contract* gerenciará 3 conjuntos de validadores:
-  - **Validadores elegíveis** ao consenso. Somente poderão fazer parde desse conjunto validadores definidos pela [governança da RBB](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
+  - **Validadores elegíveis** ao consenso. Somente poderão fazer parte desse conjunto validadores definidos pela [governança da RBB](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
   - **Validadores operacionais**, que efetivamente fazem parte do consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores elegíveis.
   - **Validadores adicionados**, contendo validadores recém adicionados ao consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores operacionais.
   - A qualquer momento, o conjunto de validadores operacionais deverá conter ao menos 1 validador.
@@ -73,7 +73,7 @@ Critérios de aceitação:
 
 ## USSV03 - Usuário da RBB consulta validadores elegíveis para saber quem pode vir a participar do consenso<a id="ussv03"></a>
 
-Critérios de aceitaçao:
+Critérios de aceitação:
 
 1. Qualquer conta pode consultar o conjunto de validadores elegíveis.
 2. O conjunto de validadores elegíveis é retornado.
@@ -178,7 +178,7 @@ Critérios de aceitação:
 3. O nó informado deve estar no conjunto de validadores operacionais.
 4. Administradores somente podem remover nós vinculados às suas organizações.
 5. A governança pode remover nós de quaisquer organizações.
-6. O nó somente será removido se ao menos 1 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
+6. O nó somente será removido se ao menos 1 validador. permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
 7. O nó é removido do conjunto de validadores operacionais.
 8. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
 9. Um evento é emitido, registrando:
@@ -205,7 +205,7 @@ Critérios de aceitação:
    2. O nó é adicionado ao conjunto de validadores adicionados.
 6. Caso o valor do parâmetro `blocksWithoutProposeThreshold` seja menor que a quantidade de validadores elegíveis, o parâmetro é atualizado para que seu valor seja igualado à quantidade de validadores elegíveis.
    1. Um evento é emitido, registrando:
-      1. O valor do parâmetro `blocksBetweenSelection`, mesmo não tedo sido alterado.
+      1. O valor do parâmetro `blocksBetweenSelection`, mesmo não tendo sido alterado.
       2. O valor do parâmetro `blocksWithoutProposeThreshold`.
 7. Um evento é emitido, registrando:
    1. O endereço do nó.
@@ -283,7 +283,7 @@ Dúvidas:
   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
 - Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getValidators()`?
   - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
-  - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 1. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 1 validadores), em um eventual caso de reponteiramento errado.
+  - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 1. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 1 validador), em um eventual caso de reponteiramento errado.
 - (Rayan) Devemos validar se a lista retornada pela função `getValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
 
 ## USSV12 - Usuário da RBB consulta se o contrato de seleção de validadores implementa uma interface especificada<a id="ussv12"></a>
