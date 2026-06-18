@@ -14,7 +14,7 @@ Os princípios para a seleção *on chain* são:
   - **Validadores elegíveis** ao consenso. Somente poderão fazer parde desse conjunto validadores definidos pela [governança da RBB](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
   - **Validadores operacionais**, que efetivamente fazem parte do consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores elegíveis.
   - **Validadores adicionados**, contendo validadores recém adicionados ao consenso. Somente poderão fazer parte desse conjunto validadores contidos no conjunto de validadores operacionais.
-  - A qualquer momento, o conjunto de validadores operacionais deverá conter ao menos 4 validadores.
+  - A qualquer momento, o conjunto de validadores operacionais deverá conter ao menos 1 validador.
 - O *smart contract* terá dois modos de funcionamento:
   - **Manual**, onde a adição e remoção de validadores será feita de forma exclusivamente manual, através de ações da [governança](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/Governance.sol).
   - **Automático**, de acordo com critérios bem estabelecidos, o *smart contract* poderá decidir remover automaticamente validadores (operacionais) do consenso.
@@ -38,7 +38,7 @@ Critérios de aceitação:
    2. Gestão de contas - [`AccountRulesV2`](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/AccountRulesV2.sol) (gen02)
    3. Gestão de nós - [`NodeRulesV2`](https://github.com/RBBNet/Permissionamento/blob/main/gen02/contracts/NodeRulesV2.sol) (gen02)
 2. É informado um conjunto de endereços de nós validadores, para que sejam considerados no consenso da rede.
-   1. Ao menos 4 validadores devem ser informados.
+   1. Ao menos 1 validador deve ser informado.
 3. São informados os parâmetros:
    1. Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores: `blocksBetweenSelection`.
       1. Esse valor deve ser maior ou igual a 1.
@@ -64,7 +64,7 @@ Dúvidas:
 
 - Avaliou-se que a implementação com 2 parâmetros não fica muito mais complexa, podendo-se manter as vantagens desejadas. Caso quaisquer problemas de implementação sejam detectados na operação da monitoração durante a implementação e testes do *smart contract*, essa decisão poderá ser revista.
 
-## USSV02 - Besu consulta validadores operacionais para execução do algoritmo de consenso<a id="ussv02"></a>
+## USSV02 - Qualquer conta ou o Besu consulta validadores operacionais para execução do algoritmo de consenso<a id="ussv02"></a>
 
 Critérios de aceitação:
 
@@ -178,7 +178,7 @@ Critérios de aceitação:
 3. O nó informado deve estar no conjunto de validadores operacionais.
 4. Administradores somente podem remover nós vinculados às suas organizações.
 5. A governança pode remover nós de quaisquer organizações.
-6. O nó somente será removido se ao menos 4 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
+6. O nó somente será removido se ao menos 1 validadores permanecerem no conjunto de validadores operacionais após sua exclusão. Caso contrário a história é encerrada com erro.
 7. O nó é removido do conjunto de validadores operacionais.
 8. O nó é removido do conjunto de validadores adicionados, caso faça parte desse conjunto.
 9. Um evento é emitido, registrando:
@@ -268,7 +268,7 @@ Critérios de aceitação:
    1. Este endereço deve ser diferente do endereço corrente e deve ser não nulo.
    2. É validado que este endereço implementa a função `getValidators()`.
       1. Caso contrário, a história é encerrada com erro.
-   3. É validado que este endereço retorna uma lista de tamanho pelo menos 4 quando `getValidators()` é invocada.
+   3. É validado que este endereço retorna uma lista de tamanho pelo menos 1 quando `getValidators()` é invocada.
       1. Caso contrário, a história é encerrada com erro.
 3. O endereço do contrato de seleção validadores corrente é atualizado.
 4. Um evento é emitido, registrando:
@@ -283,7 +283,7 @@ Dúvidas:
   - Dados estes pontos, optou-se pela abordagem ilustrada [aqui](img/validator-selection.svg). Entendemos que está abordagem escolhida não se encaixa de forma plena em nenhum dos métodos da documentação citada.
 - Devemos implementar uma validação para garantir que o novo contrato de seleção de validadores implemente a função `getValidators()`?
   - Sim, entendemos que o custo de implementação é baixo e pode mitigar erros de operação.
-  - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 4. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 4 validadores), em um eventual caso de reponteiramento errado.
+  - Além de validar a assinatura da função, também vamos validar o número de validadores elegíveis retornado pela função e garantir que seja maior ou igual a 1. Entendemos que o custo de implementação dessa validação é baixo e pode impedir travamentos no consenso da rede (< 1 validadores), em um eventual caso de reponteiramento errado.
 - (Rayan) Devemos validar se a lista retornada pela função `getValidators()` é um subconjunto do conjunto de validadores elegíveis? Poderíamos verificar via contratos de Permissionamento.
 
 ## USSV12 - Usuário da RBB consulta se o contrato de seleção de validadores implementa uma interface especificada<a id="ussv12"></a>
@@ -291,6 +291,8 @@ Dúvidas:
 **Observações**:
 
 - É recomendado que seja implementado seguindo o [ERC-165](https://eips.ethereum.org/EIPS/eip-165)
+
+Critérios de aceitação:
 
 1. Qualquer conta pode realizar essa história.
 2. Usuário da RBB informa um [`interfaceId`](https://docs.soliditylang.org/en/latest/units-and-global-variables.html#type-information).
