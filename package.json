@@ -1,0 +1,14 @@
+{
+  "name": "selecao-validadores",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "cucumber-js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.5.0"
+  }
+}
