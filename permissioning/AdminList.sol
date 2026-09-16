@@ -1,4 +1,4 @@
-pragma solidity 0.5.9;
+pragma solidity ^0.8.22;
 
 
 contract AdminList {
@@ -30,7 +30,8 @@ contract AdminList {
 
     function add(address _account) internal returns (bool) {
         if (indexOf[_account] == 0) {
-            indexOf[_account] = allowlist.push(_account);
+            allowlist.push(_account);
+            indexOf[_account] = allowlist.length;
             return true;
         }
         return false;
@@ -67,7 +68,7 @@ contract AdminList {
             }
 
             //shrink array
-            allowlist.length -= 1;
+            allowlist.pop();
             indexOf[_account] = 0;
             return true;
         }

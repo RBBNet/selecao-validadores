@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
-import {IAdminProxy} from "src/interfaces/IAdminProxy.sol";
+import {AdminProxy} from "permissioning/AdminProxy.sol";
 import {AdminListMock} from "test/mocks/AdminListMock.sol";
 
-contract AdminMock is IAdminProxy, AdminListMock {
+contract AdminMock is AdminProxy, AdminListMock {
     modifier onlyAdmin() {
         require(isAuthorized(msg.sender), "Sender not authorized");
         _;
@@ -19,24 +19,23 @@ contract AdminMock is IAdminProxy, AdminListMock {
         add(msg.sender);
     }
 
-    function isAuthorized(address _address) public pure returns (bool) {
-        address mock = 0xa0Cb889707d426A7A386870A03bc70d1b0697598;
-        return mock == _address;
+    function isAuthorized(address _address) public view returns (bool) {
+        return exists(_address);
     }
 
-    function addAdmin(address) public view onlyAdmin returns (bool) {
-        return true;
+    function addAdmin(address _address) public onlyAdmin returns (bool) {
+        return add(_address);
     }
 
-    function removeAdmin(address _address) public view onlyAdmin notSelf(_address) returns (bool) {
-        return true;
+    function removeAdmin(address _address) public onlyAdmin notSelf(_address) returns (bool) {
+        return remove(_address);
     }
 
     function getAdmins() public view returns (address[] memory) {
         return allowlist;
     }
 
-    function addAdmins(address[] memory accounts) public view onlyAdmin returns (bool) {
+    function addAdmins(address[] memory accounts) public onlyAdmin returns (bool) {
         return addAll(accounts, msg.sender);
     }
 }

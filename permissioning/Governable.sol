@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.28;
+pragma solidity ^0.8.22;
 
 import "./AdminProxy.sol";
 
 abstract contract Governable {
 
-    AdminProxy immutable public admins;
+    AdminProxy public admins;
 
     error UnauthorizedAccess(address account);
 

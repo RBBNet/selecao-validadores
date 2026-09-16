@@ -1,4 +1,4 @@
-pragma solidity 0.5.9;
+pragma solidity ^0.8.22;
 
 import "./AdminProxy.sol";
 import "./AdminList.sol";
@@ -15,7 +15,7 @@ contract Admin is AdminProxy, AdminList {
         _;
     }
 
-    constructor() public {
+    constructor() {
         add(msg.sender);
     }
 

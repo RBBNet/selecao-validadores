@@ -1,0 +1,12 @@
+{
+  "_comment": "Exemplo de transição QBFT (US1-3) a ser adicionada no arquivo genesis de todos os nós da rede Besu. Substitua 'block' por um bloco futuro acordado pela rede e 'validatorcontractaddress' pelo endereço do ValidatorSelectionIngress implantado. Referência: https://besu.hyperledger.org/private-networks/how-to/configure/consensus/qbft#swap-validator-management-methods",
+  "transitions": {
+    "qbft": [
+      {
+        "block": 1000000,
+        "validatorselectionmode": "contract",
+        "validatorcontractaddress": "0x0000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
-import "src/ValidatorSelection.sol";
+import {ValidatorSelection} from "src/ValidatorSelection.sol";
 
 contract GovernanceMock {
     ValidatorSelection validatorSelectionContract;
@@ -10,19 +10,17 @@ contract GovernanceMock {
         validatorSelectionContract = ValidatorSelection(_validatorSelectionAddress);
     }
 
-    function executeSetBlocksBetweenSelection(uint256 _blocksBetweenSelection) public {
-        validatorSelectionContract.setBlocksBetweenSelection(_blocksBetweenSelection);
+    function executeSetSelectionParameters(uint256 _blocksBetweenSelection, uint256 _blocksWithoutProposeThreshold)
+        public
+    {
+        validatorSelectionContract.setSelectionParameters(_blocksBetweenSelection, _blocksWithoutProposeThreshold);
     }
 
-    function executeSetBlocksWithoutProposeThreshold(uint256 _blocksWithoutProposeThreshold) public {
-        validatorSelectionContract.setBlocksWithoutProposeThreshold(_blocksWithoutProposeThreshold);
+    function executeAddEligibleValidator(address _validator, bool _activateAsOperational) public {
+        validatorSelectionContract.addEligibleValidatorByAddress(_validator, _activateAsOperational);
     }
 
-    function executeAddElegibleValidator(address _validator) public {
-        validatorSelectionContract.addElegibleValidator(_validator);
-    }
-
-    function executeRemoveElegibleValidator(address _validator) public {
-        validatorSelectionContract.removeElegibleValidator(_validator);
+    function executeRemoveEligibleValidator(address _validator) public {
+        validatorSelectionContract.removeEligibleValidatorByAddress(_validator);
     }
 }

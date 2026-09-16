@@ -1,241 +1,403 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.33;
+pragma solidity ^0.8.22;
 
-import {IValidatorSelection} from "src/interfaces/IValidatorSelection.sol";
-import {IAdminProxy} from "src/interfaces/IAdminProxy.sol";
+import {IValidatorSelection, OperationMode} from "src/interfaces/IValidatorSelection.sol";
+import {IValidatorList} from "src/interfaces/IValidatorList.sol";
 import {INodeRulesV2} from "src/interfaces/INodeRulesV2.sol";
 import {IAccountRulesV2, GLOBAL_ADMIN_ROLE, LOCAL_ADMIN_ROLE} from "src/interfaces/IAccountRulesV2.sol";
-import {Governable} from "src/Governable.sol";
+import {Governable} from "permissioning/Governable.sol";
+import {AdminProxy} from "permissioning/AdminProxy.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-contract ValidatorSelection is IValidatorSelection, Initializable, Governable, OwnableUpgradeable, UUPSUpgradeable {
+contract ValidatorSelection is IValidatorSelection, Governable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     IAccountRulesV2 public accountsContract;
     INodeRulesV2 public nodesContract;
 
-    EnumerableSet.AddressSet private elegibleValidators;
+    EnumerableSet.AddressSet private eligibleValidators;
     EnumerableSet.AddressSet private operationalValidators;
+    EnumerableSet.AddressSet private protectedValidators;
+
+    OperationMode public operationMode;
 
     uint256 public blocksBetweenSelection;
     uint256 public blocksWithoutProposeThreshold;
     uint256 public nextSelectionBlock;
+    uint256 public cycleStartBlock;
+    uint256 public lastMonitoredBlock;
 
     mapping(address => uint256) public lastBlockProposedBy;
 
-    uint256 public constant MIN_NUMBER_OF_VALIDATORS = 4;
+    uint256 public constant MIN_INITIAL_ELIGIBLE_VALIDATORS = 1;
+    uint256 public constant MIN_OPERATIONAL_VALIDATORS = 4;
+    uint256 public constant MIN_GOV_OPERATIONAL_VALIDATORS = 1;
 
-    event MonitorExecuted();
-    event SelectionExecuted();
-    event ValidatorsRemoved(address[] removed);
+    event MonitorExecuted(address indexed executor, uint256 indexed blockNumber);
+    event SelectionExecuted(address[] operationalValidators);
+    event OperationModeChanged(OperationMode indexed mode);
+    event OperationalValidatorAdded(address indexed validator);
+    event OperationalValidatorRemoved(address indexed validator);
+    event OperationalValidatorManuallyRemoved(address indexed validator);
+    event EligibleValidatorAdded(address indexed validator, bool indexed activateAsOperational);
+    event EligibleValidatorRemoved(address indexed validator);
+    event SelectionParametersUpdated(uint256 blocksBetweenSelection, uint256 blocksWithoutProposeThreshold);
+    event AdminContractUpdated(address indexed oldAdmin, address indexed newAdmin);
+    event AccountsContractUpdated(address indexed oldAccounts, address indexed newAccounts);
+    event NodesContractUpdated(address indexed oldNodes, address indexed newNodes);
 
+    error InvalidAddress();
     error InactiveAccount(address account);
     error NotLocalNode(bytes32 enodeHigh, bytes32 enodeLow);
-    error NotElegibleNode(address nodeAddress);
+    error InvalidValidatorAddress(address nodeAddress);
+    error NotEligibleNode(address nodeAddress);
+    error AlreadyEligibleNode(address nodeAddress);
     error NotOperationalNode(address nodeAddress);
+    error AlreadyOperationalNode(address nodeAddress);
     error FewEligibleValidators();
-
-    modifier onlyActiveAdmin() {
-        _checkActiveAdmin();
-        _;
-    }
-
-    modifier onlySameOrganization(bytes32 enodeHigh, bytes32 enodeLow) {
-        _checkSameOrganization(enodeHigh, enodeLow);
-        _;
-    }
-
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(
-        IAdminProxy adminsProxy,
+    error FewOperationalValidators();
+    error InvalidBlocksBetweenSelection();
+    error InvalidBlocksWithoutProposeThreshold();
+    error SameAddress(address current);
+    error InvalidAdminContract(address addr);
+    error InvalidAccountsContract(address addr);
+    error InvalidNodesContract(address addr);
+    error InvalidOperationMode();
+    error SameOperationMode(OperationMode current);
+ 
+    constructor(
+        AdminProxy adminsProxy,
         IAccountRulesV2 _accountsContract,
         INodeRulesV2 _nodesContract,
-        address[] memory initialElegibleValidators,
+        address[] memory initialEligibleValidators,
         uint256 _blocksBetweenSelection,
         uint256 _blocksWithoutProposeThreshold,
         uint256 _nextSelectionBlock
-    ) public initializer {
-        __Governable_init(adminsProxy);
-        __Ownable_init(_msgSender());
+    ) Governable(adminsProxy) {
+        if (address(_accountsContract) == address(0) || address(_nodesContract) == address(0)) {
+            revert InvalidAddress();
+        }
         accountsContract = _accountsContract;
         nodesContract = _nodesContract;
+        _initEligibleValidators(initialEligibleValidators);
+        _validateSelectionParameters(_blocksBetweenSelection, _blocksWithoutProposeThreshold);
         blocksBetweenSelection = _blocksBetweenSelection;
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
         nextSelectionBlock = _nextSelectionBlock;
-        _initElegibleValidators(initialElegibleValidators);
+        cycleStartBlock = block.number;
     }
 
-    function _initElegibleValidators(address[] memory initialElegibleValidators) internal {
-        uint256 initialElegibleValidatorsLength = initialElegibleValidators.length;
-        if (initialElegibleValidatorsLength < MIN_NUMBER_OF_VALIDATORS) revert FewEligibleValidators();
-        for (uint256 i; i < initialElegibleValidatorsLength; i++) {
-            elegibleValidators.add(initialElegibleValidators[i]);
+    function _initEligibleValidators(address[] memory initialEligibleValidators) internal {
+        uint256 initialEligibleValidatorsLength = initialEligibleValidators.length;
+        if (initialEligibleValidatorsLength < MIN_INITIAL_ELIGIBLE_VALIDATORS) revert FewEligibleValidators();
+
+        for (uint256 i; i < initialEligibleValidatorsLength; ++i) {
+            address validator = initialEligibleValidators[i];
+            if (validator == address(0)) revert InvalidValidatorAddress(validator);
+            if (!eligibleValidators.add(validator)) revert AlreadyEligibleNode(validator);
+
+            operationalValidators.add(validator);
+            protectedValidators.add(validator);
         }
     }
 
-    function getActiveValidators() external view returns (address[] memory) {
+    function getValidators() external view returns (address[] memory) {
         return operationalValidators.values();
     }
 
-    // usar ou não onlyActiveAdmin?
-    // qualquer um pode contribuir com o monitoramento ou apenas as organizações?
-    function monitorsValidators() external {
-        emit MonitorExecuted();
-        address proposer = block.coinbase;
-        uint256 blockNumber = block.number;
-        if (lastBlockProposedBy[proposer] == blockNumber) {
-            return;
-        }
-        _monitorsValidators(proposer, blockNumber);
-        if (_isAtSelectionBlock(blockNumber)) {
-            address[] memory selectedValidators = _selectValidators(blockNumber);
-            if (_doesItNeedRemoval(selectedValidators)) {
-                _removeOperationalValidators(selectedValidators);
-            }
-            _updateNextSelectionBlock();
-        }
+    function getEligibleValidators() external view returns (address[] memory) {
+        return eligibleValidators.values();
     }
 
-    function _monitorsValidators(address proposer, uint256 blockNumber) internal {
-        lastBlockProposedBy[proposer] = blockNumber;
+    function getProtectedValidators() external view returns (address[] memory) {
+        return protectedValidators.values();
+    }
+
+    function isEligible(address validator) external view returns (bool) {
+        return eligibleValidators.contains(validator);
+    }
+
+    function isOperational(address validator) external view returns (bool) {
+        return operationalValidators.contains(validator);
+    }
+
+    function isProtected(address validator) external view returns (bool) {
+        return protectedValidators.contains(validator);
+    }
+
+    function setOperationMode(OperationMode newMode) external onlyGovernance {
+        if (newMode != OperationMode.Manual && newMode != OperationMode.Automatic) {
+            revert InvalidOperationMode();
+        }
+        if (newMode == operationMode) revert SameOperationMode(newMode);
+        operationMode = newMode;
+        if (newMode == OperationMode.Automatic) {
+            _protectOperationalValidators();
+            _startNewCycle(block.number);
+            lastMonitoredBlock = 0;
+        }
+        emit OperationModeChanged(newMode);
+    }
+
+    function executeMonitoring() external {
+        emit MonitorExecuted(msg.sender, block.number);
+        if (operationMode != OperationMode.Automatic) {
+            return;
+        }
+        uint256 blockNumber = block.number;
+        if (lastMonitoredBlock == blockNumber) {
+            return;
+        }
+        lastMonitoredBlock = blockNumber;
+        lastBlockProposedBy[block.coinbase] = blockNumber;
+        if (_isAtSelectionBlock(blockNumber)) {
+            _executeSelection(blockNumber);
+            _clearProtectedValidators();
+            _startNewCycle(blockNumber);
+        }
     }
 
     function _isAtSelectionBlock(uint256 blockNumber) internal view returns (bool) {
-        return blockNumber == nextSelectionBlock;
+        return blockNumber >= nextSelectionBlock;
     }
 
-    function _selectValidators(uint256 blockNumber) internal returns (address[] memory) {
-        uint256 numberOfOperationalValidators = operationalValidators.length();
-        address[] memory auxArray = new address[](numberOfOperationalValidators);
-        uint256 numberOfSelectedValidators;
+    function _executeSelection(uint256 blockNumber) internal {
+        (address[] memory inactiveValidators, uint256 numberOfInactiveValidators) = _findInactiveValidators(blockNumber);
 
-        for (uint256 i; i < numberOfOperationalValidators; i++) {
-            address candidateValidator = operationalValidators.at(i);
-            uint256 lastBlockOfCandidateValidator = lastBlockProposedBy[candidateValidator];
+        if (
+            numberOfInactiveValidators > 0
+                && operationalValidators.length() - numberOfInactiveValidators >= MIN_OPERATIONAL_VALIDATORS
+        ) {
+            _removeInactiveValidators(inactiveValidators, numberOfInactiveValidators);
+        }
 
-            if (blockNumber - lastBlockOfCandidateValidator > blocksWithoutProposeThreshold) {
-                auxArray[numberOfSelectedValidators++] = candidateValidator;
+        emit SelectionExecuted(operationalValidators.values());
+    }
+
+    function _findInactiveValidators(uint256 blockNumber)
+        internal
+        view
+        returns (address[] memory inactiveValidators, uint256 numberOfInactiveValidators)
+    {
+        address[] memory candidateValidators = operationalValidators.values();
+        uint256 numberOfCandidateValidators = candidateValidators.length;
+        inactiveValidators = new address[](numberOfCandidateValidators);
+
+        for (uint256 i; i < numberOfCandidateValidators; ++i) {
+            address candidateValidator = candidateValidators[i];
+            if (_isInactive(candidateValidator, blockNumber)) {
+                inactiveValidators[numberOfInactiveValidators] = candidateValidator;
+                ++numberOfInactiveValidators;
             }
         }
-
-        address[] memory selectedValidators = new address[](numberOfSelectedValidators);
-        for (uint256 i; i < numberOfSelectedValidators; i++) {
-            selectedValidators[i] = auxArray[i];
-        }
-
-        emit SelectionExecuted();
-        return selectedValidators;
     }
 
-    function _doesItNeedRemoval(address[] memory selectedValidators) internal view returns (bool) {
-        uint256 numberOfSelectedValidators = selectedValidators.length;
-        if (numberOfSelectedValidators == 0) {
-            return false;
-        }
-
-        uint256 numberOfOperationalValidators = operationalValidators.length();
-        uint256 numberOfRemainingValidators = numberOfOperationalValidators - numberOfSelectedValidators;
-        if (numberOfRemainingValidators < MIN_NUMBER_OF_VALIDATORS) {
-            return false;
-        }
-
-        return true;
+    function _isInactive(address validator, uint256 blockNumber) internal view returns (bool) {
+        return blockNumber - _lastActivity(validator) > blocksWithoutProposeThreshold;
     }
 
-    function _removeOperationalValidators(address[] memory nonOperationalValidators) internal {
-        uint256 numberOfNonOperationalValidators = nonOperationalValidators.length;
-        for (uint256 i = 0; i < numberOfNonOperationalValidators; i++) {
-            operationalValidators.remove(nonOperationalValidators[i]);
+    function _removeInactiveValidators(address[] memory inactiveValidators, uint256 numberOfInactiveValidators)
+        internal
+    {
+        for (uint256 i; i < numberOfInactiveValidators; ++i) {
+            address inactiveValidator = inactiveValidators[i];
+            if (protectedValidators.contains(inactiveValidator)) continue;
+            operationalValidators.remove(inactiveValidator);
+            emit OperationalValidatorRemoved(inactiveValidator);
         }
-        emit ValidatorsRemoved(nonOperationalValidators);
     }
 
-    function setBlocksBetweenSelection(uint256 _blocksBetweenSelection) external onlyGovernance {
+    function _lastActivity(address validator) internal view returns (uint256) {
+        uint256 lastBlockProposed = lastBlockProposedBy[validator];
+        return lastBlockProposed > cycleStartBlock ? lastBlockProposed : cycleStartBlock;
+    }
+
+    function _startNewCycle(uint256 blockNumber) internal {
+        cycleStartBlock = blockNumber;
+        nextSelectionBlock = blockNumber + blocksBetweenSelection;
+    }
+
+    function _clearProtectedValidators() internal {
+        while (protectedValidators.length() > 0) {
+            protectedValidators.remove(protectedValidators.at(protectedValidators.length() - 1));
+        }
+    }
+
+    function setSelectionParameters(uint256 _blocksBetweenSelection, uint256 _blocksWithoutProposeThreshold)
+        external
+        onlyGovernance
+    {
+        _validateSelectionParameters(_blocksBetweenSelection, _blocksWithoutProposeThreshold);
         blocksBetweenSelection = _blocksBetweenSelection;
-    }
-
-    function setNextSelectionBlock(uint256 _nextSelectionBlock) external onlyGovernance {
-        nextSelectionBlock = _nextSelectionBlock;
-    }
-
-    function _updateNextSelectionBlock() internal {
-        nextSelectionBlock += blocksBetweenSelection;
-    }
-
-    function setBlocksWithoutProposeThreshold(uint256 _blocksWithoutProposeThreshold) external onlyGovernance {
         blocksWithoutProposeThreshold = _blocksWithoutProposeThreshold;
+        _protectOperationalValidators();
+        _startNewCycle(block.number);
+        emit SelectionParametersUpdated(_blocksBetweenSelection, _blocksWithoutProposeThreshold);
     }
 
-    function addElegibleValidator(address validator) public onlyGovernance {
-        elegibleValidators.add(validator);
+    function _validateSelectionParameters(uint256 _blocksBetweenSelection, uint256 _blocksWithoutProposeThreshold)
+        internal
+        view
+    {
+        if (_blocksBetweenSelection < 1) revert InvalidBlocksBetweenSelection();
+        if (_blocksWithoutProposeThreshold < eligibleValidators.length()) {
+            revert InvalidBlocksWithoutProposeThreshold();
+        }
     }
 
-    function addElegibleValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
-        address validator = _calculateAddress(enodeHigh, enodeLow);
-        addElegibleValidator(validator);
+    function _protectOperationalValidators() internal {
+        address[] memory operational = operationalValidators.values();
+        uint256 operationalLength = operational.length;
+        for (uint256 i; i < operationalLength; ++i) {
+            protectedValidators.add(operational[i]);
+        }
     }
 
-    function removeElegibleValidator(address validator) public onlyGovernance {
-        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
-        elegibleValidators.remove(validator);
+    function addEligibleValidatorByAddress(address validator, bool activateAsOperational) public onlyGovernance {
+        if (validator == address(0)) revert InvalidValidatorAddress(validator);
+        if (!eligibleValidators.add(validator)) revert AlreadyEligibleNode(validator);
+        emit EligibleValidatorAdded(validator, activateAsOperational);
+        if (activateAsOperational) {
+            _addOperationalValidator(validator);
+        }
+        _adjustBlocksWithoutProposeThreshold();
     }
 
-    function removeElegibleValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
-        address validator = _calculateAddress(enodeHigh, enodeLow);
-        removeElegibleValidator(validator);
-    }
-
-    function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
+    function addEligibleValidator(bytes32 enodeHigh, bytes32 enodeLow, bool activateAsOperational)
         external
-        onlyActiveAdmin
-        onlySameOrganization(enodeHigh, enodeLow)
+        onlyGovernance
     {
         address validator = _calculateAddress(enodeHigh, enodeLow);
-        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
-        operationalValidators.add(validator);
+        addEligibleValidatorByAddress(validator, activateAsOperational);
     }
 
-    function addOperationalValidator(address validator) external onlyGovernance {
-        if (!elegibleValidators.contains(validator)) revert NotElegibleNode(validator);
-        operationalValidators.add(validator);
+    function _adjustBlocksWithoutProposeThreshold() internal {
+        uint256 numberOfEligibleValidators = eligibleValidators.length();
+        if (blocksWithoutProposeThreshold < numberOfEligibleValidators) {
+            blocksWithoutProposeThreshold = numberOfEligibleValidators;
+            emit SelectionParametersUpdated(blocksBetweenSelection, blocksWithoutProposeThreshold);
+        }
     }
 
-    function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow)
-        external
-        onlyActiveAdmin
-        onlySameOrganization(enodeHigh, enodeLow)
-    {
+    function removeEligibleValidatorByAddress(address validator) public onlyGovernance {
+        if (!eligibleValidators.contains(validator)) revert NotEligibleNode(validator);
+        if (operationalValidators.contains(validator)) {
+            _removeOperationalValidator(validator, MIN_GOV_OPERATIONAL_VALIDATORS);
+        }
+        eligibleValidators.remove(validator);
+        emit EligibleValidatorRemoved(validator);
+    }
+
+    function removeEligibleValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
         address validator = _calculateAddress(enodeHigh, enodeLow);
-        if (!operationalValidators.contains(validator)) revert NotOperationalNode(validator);
-        operationalValidators.remove(validator);
+        removeEligibleValidatorByAddress(validator);
     }
 
-    function removeOperationalValidator(address validator) external onlyGovernance {
+    function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) external {
+        if (!admins.isAuthorized(msg.sender)) {
+            _checkActiveAdmin();
+            _checkSameOrganization(enodeHigh, enodeLow);
+        }
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        _addOperationalValidator(validator);
+    }
+
+    function addOperationalValidatorByAddress(address validator) external onlyGovernance {
+        _addOperationalValidator(validator);
+    }
+
+    function _addOperationalValidator(address validator) internal {
+        if (!eligibleValidators.contains(validator)) revert NotEligibleNode(validator);
+        if (operationalValidators.contains(validator)) revert AlreadyOperationalNode(validator);
+        operationalValidators.add(validator);
+        protectedValidators.add(validator);
+        emit OperationalValidatorAdded(validator);
+    }
+
+    function removeOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) external onlyGovernance {
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        _removeOperationalValidator(validator, MIN_GOV_OPERATIONAL_VALIDATORS);
+    }
+
+    function removeOperationalValidatorByAddress(address validator) external onlyGovernance {
+        _removeOperationalValidator(validator, MIN_GOV_OPERATIONAL_VALIDATORS);
+    }
+
+    function removeOperationalValidatorByAdmin(bytes32 enodeHigh, bytes32 enodeLow) external {
+        address validator = _calculateAddress(enodeHigh, enodeLow);
+        _checkActiveAdmin();
+        _checkSameOrganization(enodeHigh, enodeLow);
+        _removeOperationalValidator(validator, MIN_OPERATIONAL_VALIDATORS);
+    }
+
+    function _removeOperationalValidator(address validator, uint256 minRemainingValidators) internal {
         if (!operationalValidators.contains(validator)) revert NotOperationalNode(validator);
+        if (operationalValidators.length() - 1 < minRemainingValidators) revert FewOperationalValidators();
         operationalValidators.remove(validator);
+        protectedValidators.remove(validator);
+        emit OperationalValidatorManuallyRemoved(validator);
+    }
+
+    function updateAdminContract(address _newAdmin) external onlyGovernance {
+        if (_newAdmin == address(0)) revert InvalidAddress();
+        if (_newAdmin == address(admins)) revert SameAddress(_newAdmin);
+        try AdminProxy(_newAdmin).isAuthorized(address(0)) returns (bool) {}
+        catch {
+            revert InvalidAdminContract(_newAdmin);
+        }
+        address oldAdmin = address(admins);
+        admins = AdminProxy(_newAdmin);
+        emit AdminContractUpdated(oldAdmin, _newAdmin);
+    }
+
+    function updateAccountsContract(address _newAccountsContract) external onlyGovernance {
+        if (_newAccountsContract == address(0)) revert InvalidAddress();
+        if (_newAccountsContract == address(accountsContract)) revert SameAddress(_newAccountsContract);
+        try IAccountRulesV2(_newAccountsContract).isAccountActive(address(0)) returns (bool) {}
+        catch {
+            revert InvalidAccountsContract(_newAccountsContract);
+        }
+        address oldAccounts = address(accountsContract);
+        accountsContract = IAccountRulesV2(_newAccountsContract);
+        emit AccountsContractUpdated(oldAccounts, _newAccountsContract);
+    }
+
+    function updateNodesContract(address _newNodesContract) external onlyGovernance {
+        if (_newNodesContract == address(0)) revert InvalidAddress();
+        if (_newNodesContract == address(nodesContract)) revert SameAddress(_newNodesContract);
+        try INodeRulesV2(_newNodesContract).allowedNodes(0) returns (
+            bytes32, bytes32, INodeRulesV2.NodeType, string memory, uint256, bool
+        ) {}
+        catch {
+            revert InvalidNodesContract(_newNodesContract);
+        }
+        address oldNodes = address(nodesContract);
+        nodesContract = INodeRulesV2(_newNodesContract);
+        emit NodesContractUpdated(oldNodes, _newNodesContract);
+    }
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return interfaceId == type(IERC165).interfaceId || interfaceId == type(IValidatorSelection).interfaceId
+            || interfaceId == type(IValidatorList).interfaceId
+            || interfaceId == (type(IValidatorSelection).interfaceId ^ type(IValidatorList).interfaceId)
+            || interfaceId == (type(IValidatorSelection).interfaceId ^ type(IValidatorList).interfaceId ^ type(IERC165).interfaceId);
     }
 
     function _checkActiveAdmin() internal view {
         if (
-            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, _msgSender())
-                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, _msgSender())
+            !accountsContract.hasRole(GLOBAL_ADMIN_ROLE, msg.sender)
+                && !accountsContract.hasRole(LOCAL_ADMIN_ROLE, msg.sender)
         ) {
-            revert UnauthorizedAccess(_msgSender());
+            revert UnauthorizedAccess(msg.sender);
         }
-        if (!accountsContract.isAccountActive(_msgSender())) {
-            revert InactiveAccount(_msgSender());
+        if (!accountsContract.isAccountActive(msg.sender)) {
+            revert InactiveAccount(msg.sender);
         }
     }
 
     function _checkSameOrganization(bytes32 enodeHigh, bytes32 enodeLow) internal view {
-        IAccountRulesV2.AccountData memory account = accountsContract.getAccount(_msgSender());
+        IAccountRulesV2.AccountData memory account = accountsContract.getAccount(msg.sender);
         uint256 nodeKey = _calculateKey(enodeHigh, enodeLow);
         (,,,, uint256 orgId,) = nodesContract.allowedNodes(nodeKey);
         if (account.orgId != orgId) revert NotLocalNode(enodeHigh, enodeLow);
@@ -248,6 +410,4 @@ contract ValidatorSelection is IValidatorSelection, Initializable, Governable, O
     function _calculateAddress(bytes32 enodeHigh, bytes32 enodeLow) internal pure returns (address) {
         return address(uint160(uint256(keccak256(abi.encodePacked(enodeHigh, enodeLow)))));
     }
-
-    function _authorizeUpgrade(address newImplementation) internal override onlyGovernance {}
 }

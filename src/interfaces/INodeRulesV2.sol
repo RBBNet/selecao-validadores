@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 import {INodeRulesProxy} from "src/interfaces/INodeRulesProxy.sol";
 
@@ -44,18 +44,14 @@ interface INodeRulesV2 is INodeRulesProxy {
     error InvalidState(string message);
     error InactiveNode(bytes32 enodeHigh, bytes32 enodeLow);
 
-    // Funções disponíveis apenas para administradores (globais e locais)
     function addLocalNode(bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name) external;
     function deleteLocalNode(bytes32 enodeHigh, bytes32 enodeLow) external;
     function updateLocalNode(bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name) external;
     function updateLocalNodeStatus(bytes32 enodeHigh, bytes32 enodeLow, bool active) external;
 
-    // Funções disponíveis apenas para a governança
-    function addNode(bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name, uint256 orgId)
-        external;
+    function addNode(bytes32 enodeHigh, bytes32 enodeLow, NodeType nodeType, string memory name, uint256 orgId) external;
     function deleteNode(bytes32 enodeHigh, bytes32 enodeLow) external;
 
-    // Funções disponíveis publicamente
     function isNodeActive(bytes32 enodeHigh, bytes32 enodeLow) external view returns (bool);
     function getNode(bytes32 enodeHigh, bytes32 enodeLow) external view returns (NodeData memory);
     function getNumberOfNodes() external view returns (uint256);

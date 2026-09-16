@@ -1,0 +1,21 @@
+{
+  "name": "selecao-validadores",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "hardhat compile && cucumber-js",
+    "test:dry": "hardhat compile && cucumber-js --dry-run",
+    "compile": "hardhat compile"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@cucumber/cucumber": "^12.5.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@openzeppelin/contracts": "^4.9.6",
+    "ethers": "^6.13.4",
+    "hardhat": "^2.26.6"
+  }
+}

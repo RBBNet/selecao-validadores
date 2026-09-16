@@ -1,0 +1,111 @@
+---
+# Rede Besu QBFT local com 6 nós validadores.
+#
+# São 6 e não 4 porque MIN_OPERATIONAL_VALIDATORS = 4 impede que a seleção
+# automática derrube o conjunto abaixo de 4: com 6 validadores sobra margem
+# para observar remoções reais sem esbarrar no piso logo na primeira.
+#
+# Pré-requisito: setup.sh neste diretório (gera networkFiles/ e .env).
+
+x-besu-node: &besu-node
+  build:
+    context: .
+  # Limitado de propósito: com "unless-stopped" um nó que não sobe (genesis
+  # incompatível, chave errada) fica reiniciando para sempre e a falha vira um
+  # loop silencioso em vez de aparecer como container parado.
+  restart: on-failure:3
+  volumes:
+    - ./networkFiles/genesis.json:/config/genesis.json:ro
+  networks:
+    - besu
+
+services:
+  besu-node0:
+    <<: *besu-node
+    container_name: besu-node0
+    environment:
+      NODE_NAME: besu-node0
+      BOOTNODE_HOST: ""
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node0/key:/config/key:ro
+      - node0-data:/data
+    ports:
+      - "8545:8545"
+
+  besu-node1:
+    <<: *besu-node
+    container_name: besu-node1
+    environment:
+      NODE_NAME: besu-node1
+      BOOTNODE_HOST: "besu-node0"
+      BOOTNODE_PUBKEY: "${BOOTNODE_PUBKEY}"
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node1/key:/config/key:ro
+      - node1-data:/data
+    depends_on: [besu-node0]
+
+  besu-node2:
+    <<: *besu-node
+    container_name: besu-node2
+    environment:
+      NODE_NAME: besu-node2
+      BOOTNODE_HOST: "besu-node0"
+      BOOTNODE_PUBKEY: "${BOOTNODE_PUBKEY}"
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node2/key:/config/key:ro
+      - node2-data:/data
+    depends_on: [besu-node0]
+
+  besu-node3:
+    <<: *besu-node
+    container_name: besu-node3
+    environment:
+      NODE_NAME: besu-node3
+      BOOTNODE_HOST: "besu-node0"
+      BOOTNODE_PUBKEY: "${BOOTNODE_PUBKEY}"
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node3/key:/config/key:ro
+      - node3-data:/data
+    depends_on: [besu-node0]
+
+  besu-node4:
+    <<: *besu-node
+    container_name: besu-node4
+    environment:
+      NODE_NAME: besu-node4
+      BOOTNODE_HOST: "besu-node0"
+      BOOTNODE_PUBKEY: "${BOOTNODE_PUBKEY}"
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node4/key:/config/key:ro
+      - node4-data:/data
+    depends_on: [besu-node0]
+
+  besu-node5:
+    <<: *besu-node
+    container_name: besu-node5
+    environment:
+      NODE_NAME: besu-node5
+      BOOTNODE_HOST: "besu-node0"
+      BOOTNODE_PUBKEY: "${BOOTNODE_PUBKEY}"
+    volumes:
+      - ./networkFiles/genesis.json:/config/genesis.json:ro
+      - ./nodes/node5/key:/config/key:ro
+      - node5-data:/data
+    depends_on: [besu-node0]
+
+networks:
+  besu:
+    name: besu-rbb
+
+volumes:
+  node0-data:
+  node1-data:
+  node2-data:
+  node3-data:
+  node4-data:
+  node5-data:

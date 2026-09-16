@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
-import "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 import {IAccountRulesProxy} from "./IAccountRulesProxy.sol";
 
 bytes32 constant GLOBAL_ADMIN_ROLE = keccak256("GLOBAL_ADMIN_ROLE");
@@ -38,20 +38,17 @@ interface IAccountRulesV2 is IAccountRulesProxy, IAccessControl {
     error InvalidHash(bytes32 hash, string message);
     error IllegalState(string message);
 
-    // Funções disponíveis apenas para administradores (globais e locais)
     function addLocalAccount(address account, bytes32 roleId, bytes32 dataHash) external;
     function deleteLocalAccount(address account) external;
     function updateLocalAccount(address account, bytes32 roleId, bytes32 dataHash) external;
     function updateLocalAccountStatus(address account, bool active) external;
     function setAccountTargetAccess(address account, bool restricted, address[] calldata allowedTargets) external;
 
-    // Funções disponíveis apenas para a governança
     function addAccount(address account, uint256 orgId, bytes32 roleId, bytes32 dataHash) external;
     function deleteAccount(address account) external;
     function setSmartContractSenderAccess(address smartContract, bool restricted, address[] calldata allowedSenders)
         external;
 
-    // Funções disponíveis publicamente
     function isAccountActive(address account) external view returns (bool);
     function getAccount(address account) external view returns (AccountData memory);
 
@@ -72,8 +69,5 @@ interface IAccountRulesV2 is IAccountRulesProxy, IAccessControl {
         view
         returns (bool restricted, address[] memory);
     function getNumberOfRestrictedSmartContracts() external view returns (uint256);
-    function getRestrictedSmartContracts(uint256 pageNumber, uint256 pageSize)
-        external
-        view
-        returns (address[] memory);
+    function getRestrictedSmartContracts(uint256 pageNumber, uint256 pageSize) external view returns (address[] memory);
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 interface IAdmin {
     function isAuthorized(address _address) external view returns (bool);

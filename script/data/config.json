@@ -2,12 +2,13 @@
     "contracts": {
         "adminProxy": "0x1F45849C948966Ac7e00313F39A942bD4cb644b9",
         "accountRules": "0x8Fc7cBE1E9c4f60cd7c0C672e8e8d651f9e3D045",
-        "nodeRules": "0x805c4338Aa7D1AeA4aF14F79d03d14Ad815d617E"
+        "nodeRules": "0x805c4338Aa7D1AeA4aF14F79d03d14Ad815d617E",
+        "validatorSelection": ""
     },
     "initialNextSelectionBlock": 10,
     "initialBlocksBetweenSelection": 2,
     "initialBlocksWithoutProposeThreshold": 10,
-    "initialElegibleValidators": [
+    "initialEligibleValidators": [
         "0xbebeac1b65916f055aa1933cbe93e9093445b798",
         "0x3a9c1802b1bc237ac2b84255416a91cde09008f3",
         "0x851513b758f375cc4f4d1ffd662bd4305776e1f1",

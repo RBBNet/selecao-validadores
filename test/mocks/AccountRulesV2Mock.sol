@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.22;
 
 import {IAccountRulesV2} from "src/interfaces/IAccountRulesV2.sol";
 
@@ -7,23 +7,50 @@ bytes32 constant GLOBAL_ADMIN_ROLE = keccak256("GLOBAL_ADMIN_ROLE");
 bytes32 constant LOCAL_ADMIN_ROLE = keccak256("LOCAL_ADMIN_ROLE");
 
 contract AccountRulesV2Mock is IAccountRulesV2 {
-    function hasRole(bytes32, address) external pure returns (bool) {
-        return true;
+    mapping(bytes32 => mapping(address => bool)) private _hasRole;
+    mapping(address => bool) private _customActive;
+    mapping(address => bool) private _hasCustomActive;
+    mapping(address => IAccountRulesV2.AccountData) private _customAccounts;
+    mapping(address => bool) private _hasCustomAccount;
+
+    function hasRole(bytes32 role, address account) external view returns (bool) {
+        return _hasRole[role][account];
     }
 
-    function isAccountActive(address) external pure returns (bool) {
-        return true;
+    function setRole(bytes32 role, address account, bool value) external {
+        _hasRole[role][account] = value;
     }
 
-    function getAccount(address _account) external pure returns (IAccountRulesV2.AccountData memory) {
-        IAccountRulesV2.AccountData memory data = IAccountRulesV2.AccountData({
+    function isAccountActive(address account) external view returns (bool) {
+        if (_hasCustomActive[account]) return _customActive[account];
+        return account != address(0);
+    }
+
+    function setAccountActive(address account, bool active) external {
+        _customActive[account] = active;
+        _hasCustomActive[account] = true;
+    }
+
+    function getAccount(address _account) external view returns (IAccountRulesV2.AccountData memory) {
+        if (_hasCustomAccount[_account]) return _customAccounts[_account];
+        return IAccountRulesV2.AccountData({
             orgId: 1,
             account: _account,
             roleId: GLOBAL_ADMIN_ROLE,
             dataHash: bytes32(0),
-            active: true
+            active: _account != address(0)
         });
-        return data;
+    }
+
+    function setAccount(address _account, uint256 orgId, bytes32 roleId, bool active) external {
+        _customAccounts[_account] = IAccountRulesV2.AccountData({
+            orgId: orgId,
+            account: _account,
+            roleId: roleId,
+            dataHash: bytes32(0),
+            active: active
+        });
+        _hasCustomAccount[_account] = true;
     }
 
     function addLocalAccount(address, bytes32, bytes32) external pure virtual {
@@ -57,7 +84,7 @@ contract AccountRulesV2Mock is IAccountRulesV2 {
     function setSmartContractSenderAccess(address, bool, address[] calldata) external pure {
         revert("NotSupported: Sender Access");
     }
-
+    
     function getNumberOfAccounts() external pure returns (uint256) {
         revert("NotSupported: Read function");
     }

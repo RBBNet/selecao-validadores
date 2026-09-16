@@ -1,77 +1,71 @@
-# Validator Selection - Rede Blockchain Brasil (RBB)
+# Seleção de Validadores — Rede Blockchain Brasil (RBB)
 
-Este repositório contém o contrato inteligente `ValidatorSelection`, responsável pelo gerenciamento dinâmico, monitoramento de disponibilidade (liveness) e rotação automática de validadores na Rede Blockchain Brasil (RBB).
+Mecanismo de seleção de validadores da Rede Blockchain Brasil (RBB), responsável pelo gerenciamento dinâmico do conjunto de validadores do consenso, pela monitoração de disponibilidade (*liveness*) e pela rotação automática de nós inoperantes para manutenção do SLA da rede.
 
-## 📋 Visão Geral
+O sistema é composto por dois contratos inteligentes:
+* `ValidatorSelection`: contrato de lógica que gerencia os conjuntos de validadores (elegíveis e operacionais), regras de permissão e o algoritmo de monitoramento de produção de blocos.
+* `ValidatorSelectionIngress`: fachada de endereço fixo que expõe a interface de consulta ao Besu e delega as chamadas ao contrato de lógica atualmente registrado.
 
-O objetivo principal deste contrato é garantir a saúde e a performance da rede, monitorando quais validadores estão produzindo blocos e removendo automaticamente aqueles que ficarem inativos (offline) por um período superior ao limiar configurado.
+Adicionalmente, cada partícipe da rede executa um agente externo de monitoramento (fora do escopo deste repositório) que aciona periodicamente `executeMonitoring()` no contrato de lógica para identificação e remoção automática de nós inoperantes.
 
-O sistema classifica os validadores em dois grupos:
+Para os detalhes da arquitetura dos contratos, modelo de dados, modos de operação, algoritmo de monitoramento e referência de funções/erros, consulte [`src/README.md`](src/README.md).
 
-1. **Validadores Elegíveis (`ElegibleValidators`):** Nós aprovados pela governança que possuem permissão para validar, mas podem estar desligados ou em manutenção.
-2. **Validadores Operacionais (`OperationalValidators`):** O subconjunto de nós elegíveis que está ativamente participando do consenso e propondo blocos.
+## 1. Pré-requisitos
 
-## ⚙️ Funcionalidades Principais
+* [Foundry](https://book.getfoundry.sh/getting-started/installation) (`forge`, `cast`).
+* Contratos de permissionamento (`AdminProxy`, `AccountRulesV2`, `NodeRulesV2`) implantados na rede de destino.
 
-### 1. Monitoramento de Liveness (Heartbeat)
+## 2. Instalação
 
-A função `monitorsValidators()` atua como o mecanismo de verificação da rede.
+```bash
+git clone <url-do-repositorio>
+cd selecao-validadores-rbb
+git submodule update --init --recursive
+forge build
+```
 
-* Ela identifica o `block.coinbase` (autor do bloco atual).
-* Atualiza o registro `lastBlockProposedBy` para esse validador.
-* Verifica se o ciclo atual (`blocksBetweenSelection`) foi concluído.
+Variáveis de ambiente necessárias para a execução dos scripts de deploy estão descritas em [`.env.example`](.env.example) (`PRIVATE_KEY`).
 
-### 2. Seleção e Remoção Automática
+## 3. Compilação e Testes
 
-Quando o bloco atual atinge o `nextSelectionBlock`, o contrato executa a lógica de saneamento:
+O repositório possui três suítes de teste complementares:
 
-1. Itera sobre todos os **Validadores Operacionais**.
-2. Verifica a diferença entre o bloco atual e o último bloco proposto pelo validador.
-3. Se a diferença for maior que `blocksWithoutProposeThreshold`, o validador é considerado inativo.
-4. **Trava de Segurança:** O validador inativo é removido da lista operacional **apenas se** a rede mantiver, no mínimo, **4 validadores ativos** (requisito para tolerância a falhas em consenso QBFT).
+```bash
+# Compilação
+forge build
 
-### 3. Gestão de Organizações (Soberania Local)
+# Suíte de testes unitários (Foundry)
+forge test
+forge test --summary
+```
 
-O contrato permite que administradores de uma organização específica gerenciem seus próprios nós sem depender de uma votação de governança central para operações cotidianas:
+* **Testes Unitários (Foundry)**: Validação da lógica interna dos contratos e transições de estado isoladas.
+* **Especificações BDD (Cucumber)**: Validação comportamental baseada em cenários Gherkin sobre rede Hardhat. Consulte [`features/README.md`](features/README.md) para instruções de execução.
+* **Testes Ponta a Ponta (E2E)**: Validação integrada contra um cluster de 6 nós Besu QBFT em Docker. Consulte [`test/e2e/README.md`](test/e2e/README.md) para detalhes da suíte E2E.
 
-* Um administrador da "Org A" pode adicionar ou remover um nó da "Org A" da lista de operacionais (desde que o nó já seja elegível).
-* Isso é garantido pelo modificador `onlySameOrganization`, que valida o `orgId` do remetente e do nó alvo no contrato `NodeRules`.
+## 4. Visão Geral da Implantação e Transição de Gênesis
 
-## 📊 Parâmetros de Configuração
+A implantação do mecanismo ocorre em **duas etapas sequenciais**, seguidas da transição de gênesis nos nós Besu da rede:
 
-Os seguintes parâmetros podem ser ajustados via governança:
+1. **Deploy do Contrato de Lógica (`ValidatorSelection`)**: Implanta a regra de negócio com a lista inicial de validadores elegíveis/operacionais e parâmetros de monitoramento.
+2. **Deploy do Ingress (`ValidatorSelectionIngress`)**: Implanta o ponto de entrada fixo da rede apontando para o contrato de lógica implantado na Etapa 1.
+3. **Transição de Gênesis**: Atualização da chave `config.transitions.qbft` no arquivo `genesis.json` de todos os nós da rede para o modo `contract`, informando o endereço do Ingress.
 
-| Parâmetro | Descrição |
-| :--- | :--- |
-| `blocksBetweenSelection` | O intervalo de blocos (época) entre cada execução da lógica de verificação/remoção. |
-| `blocksWithoutProposeThreshold` | O número máximo de blocos que um validador pode ficar sem propor antes de ser marcado para remoção. |
-| `nextSelectionBlock` | O número do bloco onde a próxima verificação de seleção ocorrerá. |
+```
+ 1. Implantar ValidatorSelection (Lógica) ..... forge script script/Deploy.s.sol
+        │
+ 2. Implantar ValidatorSelectionIngress ....... forge script script/DeployIngress.s.sol
+        │
+ ═══════╪═══ EXIGE COORDENAÇÃO DE TODA A REDE ═════════════════════════════════
+        │
+ 3. Definir o bloco N da transição e atualizar genesis.json nos nós Besu
+        │
+ 4. BLOCO N — O Besu passa a consultar getValidators() no Ingress
+```
 
-## 🔐 Controle de Acesso
+Para o detalhamento do arquivo [`script/data/config.json`](script/data/config.json), variáveis de ambiente, modelo de `genesis.json` e comandos de execução dos scripts de deploy, consulte a [**Documentação de Scripts de Implantação**](script/README.md).
 
-O contrato implementa controle de acesso granular:
+## 5. Licença
 
-* **`onlyGovernance`**: Acesso irrestrito. Pode alterar parâmetros globais e forçar a adição/remoção de qualquer validador.
-* **`onlyActiveAdmin`**: Requer que o chamador tenha a role `GLOBAL_ADMIN_ROLE` ou `LOCAL_ADMIN_ROLE` e esteja ativo no `AccountRules`.
-* **`onlySameOrganization`**: Garante que o administrador pertença à mesma organização do nó que está sendo manipulado.
+[GPL-3.0-only](LICENSE).
 
-## 🚀 Fluxo Lógico
-
-Abaixo, um diagrama simplificado do fluxo da função `monitorsValidators`:
-
-```mermaid
-graph TD
-    A[Chamada monitorsValidators] --> B{Já registrou este bloco?}
-    B -- Sim --> C[Fim]
-    B -- Não --> D[Registra block.coinbase]
-    D --> E{É bloco de Seleção?}
-    E -- Não --> C
-    E -- Sim --> F[Verifica Inatividade]
-    F --> G{Tempo s/ propor > Threshold?}
-    G -- Sim --> H[Marca para Remoção]
-    H --> I{Restarão >= 4 Validadores?}
-    I -- Sim --> J[Remove Validador Operacional]
-    I -- Não --> K[Mantém Validador por Segurança]
-    J --> L[Atualiza nextSelectionBlock]
-    K --> L
-    L --> C
