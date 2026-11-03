@@ -59,6 +59,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     error FewOperationalValidators();
     error InvalidBlocksBetweenSelection();
     error InvalidBlocksWithoutProposeThreshold();
+    error ThresholdExceedsBlocksBetweenSelection();
     error SameAddress(address current);
     error InvalidAdminContract(address addr);
     error InvalidAccountsContract(address addr);
@@ -194,7 +195,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     }
 
     function _isInactive(address validator, uint256 blockNumber) internal view returns (bool) {
-        return blockNumber - _lastActivity(validator) > blocksWithoutProposeThreshold;
+        return blockNumber - _lastActivity(validator) >= blocksWithoutProposeThreshold;
     }
 
     function _removeInactiveValidators(address[] memory inactiveValidators, uint256 numberOfInactiveValidators)
@@ -244,6 +245,9 @@ contract ValidatorSelection is IValidatorSelection, Governable {
         if (_blocksWithoutProposeThreshold < eligibleValidators.length()) {
             revert InvalidBlocksWithoutProposeThreshold();
         }
+        if (_blocksWithoutProposeThreshold > _blocksBetweenSelection) {
+            revert ThresholdExceedsBlocksBetweenSelection();
+        }
     }
 
     function _protectOperationalValidators() internal {
@@ -275,6 +279,7 @@ contract ValidatorSelection is IValidatorSelection, Governable {
     function _adjustBlocksWithoutProposeThreshold() internal {
         uint256 numberOfEligibleValidators = eligibleValidators.length();
         if (blocksWithoutProposeThreshold < numberOfEligibleValidators) {
+            if (numberOfEligibleValidators > blocksBetweenSelection) revert ThresholdExceedsBlocksBetweenSelection();
             blocksWithoutProposeThreshold = numberOfEligibleValidators;
             emit SelectionParametersUpdated(blocksBetweenSelection, blocksWithoutProposeThreshold);
         }

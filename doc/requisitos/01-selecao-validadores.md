@@ -118,8 +118,9 @@ Ao término desta história, o *smart contract* estará devidamente configurado 
 * `blocksBetweenSelection`: Intervalo (quantidade) de blocos que o *smart contract* aguardará para realizar nova avaliação e seleção de validadores.
   - Esse valor deve ser maior ou igual a 1.
 * `blocksWithoutProposeThreshold`: Limite de blocos tolerado para que um validador permaneça sem propor blocos.
-  - Acima desse limite o validador deverá ser pré-selecionado para remoção do conjunto de validadores operacionais.
+  - Ao atingir esse limite, isto é, ao acumular uma quantidade de blocos sem propor maior ou igual ao valor do parâmetro, o validador deverá ser pré-selecionado para remoção do conjunto de validadores operacionais.
   - Esse limite deve ser maior ou igual ao número de validadores elegíveis.
+  - Esse limite deve ser menor ou igual a `blocksBetweenSelection`. A contagem de blocos sem propor reinicia a cada ciclo, de modo que um limite maior que o intervalo nunca seria atingido e a remoção automática ficaria desativada.
 
 4.7. Deve ser informada **obrigatoriamente** uma lista inicial de endereços de nós validadores, garantindo que ao menos 1 endereço válido seja informado e que não existam endereços duplicados.
 
@@ -348,6 +349,7 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 2. O sistema deve validar:
    - Se `blocksBetweenSelection` é >= 1.
    - Se `blocksWithoutProposeThreshold` é >= ao número de validadores elegíveis.
+   - Se `blocksWithoutProposeThreshold` é <= `blocksBetweenSelection`.
 3. Se todas as validações forem atendidas, o sistema deve atualizar os parâmetros e executar as ações previstas nas regras 4.3 e 4.4.
 4. Caso qualquer validação não seja atendida: ver item 3.3.
 
@@ -359,12 +361,15 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 2. Parâmetro `blocksWithoutProposeThreshold` inválido:
    - Reverter a operação.
    - Retornar um erro para o contexto de `blocksWithoutProposeThreshold` inválido.
+3. Parâmetro `blocksWithoutProposeThreshold` maior que `blocksBetweenSelection`:
+   - Reverter a operação.
+   - Retornar um erro para o contexto de limite de inatividade maior que o intervalo entre seleções.
 
 ##### 4. Regras de Negócio
 
 4.1. Apenas a governança pode realizar esta configuração.
 
-4.2. Regra de Estouro do Limite: Acima do limite definido em `blocksWithoutProposeThreshold`, o validador deverá ser pré-selecionado para remoção do conjunto de validadores operacionais.
+4.2. Regra de Estouro do Limite: Ao atingir o limite definido em `blocksWithoutProposeThreshold` (quantidade de blocos sem propor maior ou igual ao parâmetro), o validador deverá ser pré-selecionado para remoção do conjunto de validadores operacionais.
 
 4.3. Ao aplicar a nova configuração dos parâmetros, o conjunto de validadores protegidos deve ser populado com todos os validadores operacionais ativos.
 
@@ -376,6 +381,7 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 5.2. O sistema deve validar e exigir a inserção simultânea e obrigatória de ambos os parâmetros.  
 5.3. A transação deve ser rejeitada e revertida caso o parâmetro `blocksBetweenSelection` seja menor que 1.  
 5.4. A transação deve ser rejeitada caso o limite definido em `blocksWithoutProposeThreshold` seja menor que o número atual de validadores elegíveis cadastrados.  
+5.4.1. A transação deve ser rejeitada caso o limite definido em `blocksWithoutProposeThreshold` seja maior que `blocksBetweenSelection`.  
 5.5. Ao salvar com sucesso as novas configurações, o conjunto de validadores protegidos deve ser populado com todos os validadores operacionais ativos, os históricos de blocos devem ser reiniciados e um novo ciclo deve ser aberto.  
 5.6. O contrato deve emitir um evento registrando os novos valores configurados para ambos os parâmetros.
 
@@ -405,7 +411,7 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 
 ##### 3. Descrição
 
-3.1. O objetivo dessa história é acionar a lógica interna do *smart contract* para avaliar individualmente o desempenho dos nós na produção de blocos atuais e remover de forma automatizada aqueles que forem detectados como inoperantes.
+3.1. O objetivo dessa história é acionar a lógica interna do *smart contract* para avaliar o desempenho de cada nó na produção de blocos atuais e remover de forma automatizada, em lote, aqueles que forem detectados como inoperantes.
 
 ##### 4. Regras de Negócio
 
@@ -421,21 +427,20 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 
 4.5. A avaliação do conjunto de validadores só deve acontecer se o bloco atual corresponder ao intervalo de blocos definido no parâmetro `blocksBetweenSelection`. Caso não seja o momento do ciclo, a monitoração é encerrada.
 
-4.6. No momento da seleção, o sistema deve avaliar individualmente cada validador operacional. Se um validador estiver há mais blocos sem propor bloco do que o limite estipulado em `blocksWithoutProposeThreshold`, ele deve ser pré-selecionado para remoção do consenso.
+4.6. No momento da seleção, o sistema deve avaliar individualmente cada validador operacional. Se um validador estiver há uma quantidade de blocos sem propor bloco maior ou igual ao limite estipulado em `blocksWithoutProposeThreshold`, ele deve ser pré-selecionado para remoção do consenso.
 
-4.7. Para cada validador pré-selecionado para remoção, o sistema deve verificar se ele está contido no conjunto de validadores protegidos:
-* Caso afirmativo: O validador é protegido e mantido no conjunto de validadores operacionais.
+4.7. A pré-seleção inclui os validadores protegidos. Um validador protegido pré-selecionado conta para a verificação da regra 4.8, mas nunca é removido: ele é mantido no conjunto de validadores operacionais.
 
-4.8. Caso o validador pré-selecionado não pertença ao conjunto de protegidos, a exclusão dependerá da quantidade mínima de segurança da rede:
-* Remoção Autorizada: Se ao menos 4 validadores operacionais permanecerem ativos na rede após a exclusão do nó avaliado, o sistema deve:
+4.8. A remoção é decidida para o conjunto de pré-selecionados de uma só vez (tudo ou nada), considerando a quantidade mínima de segurança da rede:
+* Remoção Autorizada: Se a quantidade de validadores operacionais menos a quantidade de pré-selecionados (protegidos incluídos) for de ao menos 4, o sistema deve, para cada pré-selecionado não protegido:
   - Emitir um evento indicando o validador operacional que está sendo removido.
   - Remover o validador do conjunto de validadores operacionais, mantendo-o apenas como validador elegível.
-* Remoção Vetada: Se a exclusão deixar a rede com menos de 4 validadores operacionais, o nó inoperante deve ser mantido como validador operacional para proteger o consenso.
+* Remoção Vetada: Caso contrário, nenhum validador é removido e todos os pré-selecionados são mantidos como validadores operacionais para proteger o consenso.
 
 4.9. Após processar as avaliações e remoções do período, o sistema deve obrigatoriamente resetar o estado realizando os seguintes passos:
 * Esvaziar completamente o conjunto de validadores protegidos.
-* Inicializar (zerar) as informações acumuladas de produção de blocos de todos os validadores.
-* Iniciar um novo ciclo de monitoração automática.
+* Inicializar (zerar) as informações acumuladas de produção de blocos de todos os validadores, tomando o bloco atual como novo início de ciclo (`cycleStartBlock`).
+* Iniciar um novo ciclo de monitoração automática, com a próxima seleção no bloco atual mais `blocksBetweenSelection` (`nextSelectionBlock`).
 * Emitir um evento final indicando a realização da seleção automática de validadores, informando detalhadamente a listagem de validadores operacionais resultante.
 
 ##### 5. Critérios de Aceite
@@ -444,8 +449,8 @@ O contrato é inicializado em modo manual durante a implantação (ver US1-1), p
 5.2. A execução deve emitir um evento registrando seu acionamento a cada chamada.  
 5.3. Quando a monitoração prosseguir após a validação de elegibilidade, o sistema deve registrar que o bloco atual foi processado para monitoração e contabilizar a produção do bloco para o respectivo validador.  
 5.4. A avaliação detalhada e seleção só ocorrerão se o bloco atual atingir o intervalo parametrizado em `blocksBetweenSelection`.  
-5.5. Nós operacionais que excederem o limite sem propor blocos (`blocksWithoutProposeThreshold`) devem ser pré-selecionados para remoção, exceto se constarem no conjunto de "protegidos" (que possuem imunidade no ciclo corrente).  
-5.6. Caso ocorra a remoção de um nó (removendo-o do conjunto de validadores operacionais), o sistema deve validar se restam ao menos 4 nós operacionais ativos. Se restar menos que 4, a exclusão é vetada por segurança. Em caso de exclusão efetivada, um evento específico identificando o validador removido deve ser disparado.  
+5.5. Nós operacionais que atingirem o limite sem propor blocos (`blocksWithoutProposeThreshold`) devem ser pré-selecionados para remoção, inclusive os que constarem no conjunto de "protegidos". Os protegidos contam para a verificação do mínimo de 4 operacionais, mas possuem imunidade à remoção no ciclo corrente.  
+5.6. Antes de qualquer remoção, o sistema deve validar se a quantidade de operacionais menos a quantidade de pré-selecionados (protegidos incluídos) é de ao menos 4. Se for menor, nenhuma exclusão é feita no ciclo. Se for maior ou igual, todos os pré-selecionados não protegidos são removidos e, para cada exclusão, um evento específico identificando o validador removido deve ser disparado.  
 5.7. Ao fechar a avaliação do ciclo, o sistema deve executar as ações definidas em 4.9.
 
 ##### Referências Técnicas
@@ -671,6 +676,7 @@ Toda inclusão bem-sucedida deve disparar um evento público informando o endere
 * Nesse caso, um evento deve ser emitido obrigatoriamente, registrando:
   - a. O valor do parâmetro `blocksBetweenSelection`, independentemente de ter sofrido alteração nesta transação.
   - b. O valor final configurado para o parâmetro `blocksWithoutProposeThreshold`.
+* Se o valor ajustado ultrapassar `blocksBetweenSelection`, a inclusão deve ser revertida. A governança deve antes ampliar `blocksBetweenSelection`, para que o ajuste não desative a remoção automática.
 
 4.7. Um evento deve ser emitido, registrando o endereço do nó validador adicionado.
 
@@ -682,6 +688,7 @@ Toda inclusão bem-sucedida deve disparar um evento público informando o endere
 5.4. Se a flag de ativação operacional for verdadeira, o nó deve ser simultaneamente adicionado aos conjuntos operacional e de protegidos.  
 5.5. Se a nova contagem total de nós elegíveis ultrapassar o limite atual de `blocksWithoutProposeThreshold`, o contrato deve reajustar automaticamente esse parâmetro para que seu valor se iguale à quantidade total de elegíveis da rede.  
 5.6. Caso ocorrer a correção automática descrita acima, o sistema deve disparar um evento obrigatório registrando o valor vigente de `blocksBetweenSelection` e o novo limite recalculado de `blocksWithoutProposeThreshold`.  
+5.6.1. Se o limite recalculado ultrapassar `blocksBetweenSelection`, a inclusão deve ser revertida.  
 5.7. Em qualquer fluxo de adição bem-sucedido, o contrato deve emitir obrigatoriamente um evento público registrando o endereço do nó que foi adicionado ao conjunto de validadores elegíveis.
 
 ##### Referências Técnicas

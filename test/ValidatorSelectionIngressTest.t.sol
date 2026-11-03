@@ -54,7 +54,7 @@ contract ValidatorSelectionIngressTest is ValidatorSelectionBaseTest {
     function _deployLogicWithOperationalValidators() internal returns (ValidatorSelection) {
         return
             new ValidatorSelection(
-                adminMock, new AccountRulesV2Mock(), new NodeRulesV2Mock(), _validatorList(), 2, 10, 10
+                adminMock, new AccountRulesV2Mock(), new NodeRulesV2Mock(), _validatorList(), 10, 10, 10
             );
     }
 
