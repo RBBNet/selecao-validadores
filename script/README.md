@@ -50,8 +50,8 @@ Parâmetros de entrada lidos pelos scripts via `stdJson`:
 | `contracts.nodeRules` | `address` | Endereço do `NodeRulesV2` (regras de nós/enodes permitidos). |
 | `contracts.validatorSelection` | `string` | Endereço do `ValidatorSelection` implantado na Etapa 1. Preenchido antes da Etapa 2. |
 | `initialNextSelectionBlock` | `uint256` | Bloco futuro inicial para disparo da seleção automática. |
-| `initialBlocksBetweenSelection` | `uint256` | Intervalo de blocos entre ciclos (`blocksBetweenSelection`). |
-| `initialBlocksWithoutProposeThreshold` | `uint256` | Limite de blocos inativos tolerados (`blocksWithoutProposeThreshold`). |
+| `initialBlocksBetweenSelection` | `uint256` | Intervalo de blocos entre ciclos (`blocksBetweenSelection`). Deve ser maior ou igual a `initialBlocksWithoutProposeThreshold`. |
+| `initialBlocksWithoutProposeThreshold` | `uint256` | Limite de blocos inativos tolerados (`blocksWithoutProposeThreshold`). Deve ficar entre a quantidade de elegíveis e `initialBlocksBetweenSelection`; o exemplo usa 3 rodadas do *round-robin* de 9 elegíveis (27). |
 | `initialEligibleValidators` | `address[]` | Lista inicial de validadores elegíveis e operacionais. |
 
 ### 3.2 `script/data/genesis-transition.example.json`

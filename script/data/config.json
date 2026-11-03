@@ -6,8 +6,8 @@
         "validatorSelection": ""
     },
     "initialNextSelectionBlock": 10,
-    "initialBlocksBetweenSelection": 2,
-    "initialBlocksWithoutProposeThreshold": 10,
+    "initialBlocksBetweenSelection": 27,
+    "initialBlocksWithoutProposeThreshold": 27,
     "initialEligibleValidators": [
         "0xbebeac1b65916f055aa1933cbe93e9093445b798",
         "0x3a9c1802b1bc237ac2b84255416a91cde09008f3",

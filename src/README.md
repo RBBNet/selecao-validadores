@@ -82,7 +82,7 @@ flowchart TD
 O algoritmo é controlado por dois parâmetros ajustáveis via `setSelectionParameters`:
 
 * `blocksBetweenSelection`: intervalo em blocos entre avaliações do conjunto operacional.
-* `blocksWithoutProposeThreshold`: limite de blocos inativos a partir do qual um validador é considerado inoperante.
+* `blocksWithoutProposeThreshold`: limite de blocos inativos a partir do qual um validador é considerado inoperante. Deve ficar entre a quantidade de elegíveis e `blocksBetweenSelection`: como a contagem reinicia a cada ciclo, um limite maior que o intervalo nunca seria atingido.
 
 Regras de execução do algoritmo:
 

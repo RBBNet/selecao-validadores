@@ -11,7 +11,7 @@ Given('a rede possui ao menos 1 validador elegível e operacional ativo', async 
             await this.accountRulesMock.getAddress(),
             await this.nodeRulesMock.getAddress(),
             this.initialValidatorsList,
-            2, 10, 10
+            10, 10, 10
         );
         await this.validatorSelection.waitForDeployment();
     }
@@ -21,7 +21,7 @@ Given('a rede possui ao menos 1 validador elegível e operacional ativo', async 
 });
 
 Given('o valor informado para o intervalo de seleções é maior ou igual a 1', function () {
-    this.configBlocksBetween = 5;
+    this.configBlocksBetween = 10;
 });
 
 Given(/^o valor informado para o intervalo de seleções é 0 \(inválido\)$/, function () {
@@ -38,7 +38,15 @@ Given('o limite de inatividade informado é menor do que a quantidade de validad
 });
 
 Given('um valor válido para o intervalo de seleções é informado', function () {
-    this.configBlocksBetween = 5;
+    this.configBlocksBetween = 10;
+});
+
+Given('o limite de inatividade informado é menor ou igual ao intervalo de seleções', function () {
+    assert.ok(this.configThreshold <= this.configBlocksBetween);
+});
+
+Given('o limite de inatividade informado é maior que o intervalo de seleções', function () {
+    this.configThreshold = this.configBlocksBetween + 1;
 });
 
 Given('que a transação será executada por uma conta que não é a governança', function () {
@@ -51,7 +59,7 @@ Given('que a função será executada por uma conta que não é a governança', 
 
 When('a transação de configuração de parâmetros é executada', async function () {
     const callerSigner = this.caller || this.governance;
-    const blocksBetween = this.configBlocksBetween ?? 5;
+    const blocksBetween = this.configBlocksBetween ?? 10;
     const threshold = this.configThreshold ?? 10;
 
     try {
@@ -79,5 +87,5 @@ Then('o limite de inatividade passa a ser o novo valor proposto', async function
 
 Then('os parâmetros da rede devem permanecer inalterados', async function () {
     const valBlocks = await this.validatorSelection.blocksBetweenSelection();
-    assert.strictEqual(Number(valBlocks), 2);
+    assert.strictEqual(Number(valBlocks), 10);
 });

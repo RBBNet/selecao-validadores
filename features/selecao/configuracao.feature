@@ -12,6 +12,7 @@ Funcionalidade: Configuração dos parâmetros de seleção automática de valid
     Dado que a função será executada pela governança
     E o valor informado para o intervalo de seleções é maior ou igual a 1
     E o limite de inatividade informado é maior ou igual à quantidade de validadores elegíveis
+    E o limite de inatividade informado é menor ou igual ao intervalo de seleções
     Quando a transação de configuração de parâmetros é executada
     Então a transação deve ser concluída com sucesso
     E o intervalo de seleções passa a ser o novo valor proposto
@@ -34,6 +35,14 @@ Funcionalidade: Configuração dos parâmetros de seleção automática de valid
     Mas o limite de inatividade informado é menor do que a quantidade de validadores elegíveis na rede
     Quando a transação de configuração de parâmetros é executada
     Então a transação deve ser revertida por limite de inatividade incompatível
+    E os parâmetros da rede devem permanecer inalterados
+
+  Cenário: Configuração falha se o limite de inatividade for maior que o intervalo entre seleções
+    Dado que a função será executada pela governança
+    E um valor válido para o intervalo de seleções é informado
+    Mas o limite de inatividade informado é maior que o intervalo de seleções
+    Quando a transação de configuração de parâmetros é executada
+    Então a transação deve ser revertida por limite de inatividade maior que o intervalo de seleções
     E os parâmetros da rede devem permanecer inalterados
 
   Cenário: Configuração falha se não for executada pela governança
