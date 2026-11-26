@@ -19,8 +19,9 @@ export E2E_ORG2_ADMIN=0xa0Ee7A142d267C1f36714E4a8F75612F20a79720
 
 # O QBFT roda round-robin entre os 6 validadores, então cada um propõe a cada 6
 # blocos. O threshold precisa de folga sobre esse período (senão um round change
-# derruba um validador saudável) e blocksBetweenSelection precisa ser maior que
-# o threshold, senão nenhuma remoção jamais acontece.
+# derruba um validador saudável) e blocksBetweenSelection precisa ser maior ou
+# igual ao threshold, senão nenhuma remoção jamais acontece (o contrato recusa a
+# combinação inversa).
 export E2E_BLOCKS_BETWEEN_SELECTION="${E2E_BLOCKS_BETWEEN_SELECTION:-30}"
 export E2E_BLOCKS_WITHOUT_PROPOSE_THRESHOLD="${E2E_BLOCKS_WITHOUT_PROPOSE_THRESHOLD:-18}"
 export E2E_SELECTION_OFFSET="${E2E_SELECTION_OFFSET:-30}"

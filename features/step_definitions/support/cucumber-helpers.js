@@ -80,7 +80,7 @@ export function getStandardValidatorsList(world) {
 }
 
 /**
- * Implanta o ValidatorSelection com os parâmetros padrão de teste (2, 10, 10) e a lista padrão de validadores
+ * Implanta o ValidatorSelection com os parâmetros padrão de teste (10, 10, 10) e a lista padrão de validadores
  */
 export async function deployStandardValidatorSelection(world) {
     world.initialValidatorsList = getStandardValidatorsList(world);
@@ -90,7 +90,7 @@ export async function deployStandardValidatorSelection(world) {
         await world.accountRulesMock.getAddress(),
         await world.nodeRulesMock.getAddress(),
         world.initialValidatorsList,
-        2, 10, 10
+        10, 10, 10
     );
     await world.validatorSelection.waitForDeployment();
     return world.validatorSelection;

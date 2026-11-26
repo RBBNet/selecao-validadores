@@ -52,6 +52,7 @@ O código deve assegurar e manter consistentes as seguintes regras:
 * <a id="da-04"></a>**DA-04 (Algoritmo de Monitoração com Dois Parâmetros):**
   * **Descrição:** A seleção e avaliação automática baseiam-se em dois parâmetros distintos: `blocksBetweenSelection` (intervalo de blocos para avaliação) e `blocksWithoutProposeThreshold` (limite tolerado de inatividade para proposta de blocos).
   * **Justificativa:** Esta configuração provê maior flexibilidade e responsividade para identificar e remover rapidamente nós inativos (especialmente em quedas que transpassam o ciclo nominal) sem adicionar complexidade algorítmica significativa.
+  * **Restrição:** `blocksWithoutProposeThreshold` deve ser menor ou igual a `blocksBetweenSelection`. A contagem de blocos sem propor reinicia a cada ciclo (piso em `cycleStartBlock`), então um limite maior que o intervalo nunca é atingido e a remoção automática fica desativada. O contrato recusa essa combinação.
   * **Histórias de Usuário Associadas:** [US1-1](../requisitos/01-selecao-validadores.md#us1-1), [US3-2](../requisitos/01-selecao-validadores.md#us3-2), [US3-3](../requisitos/01-selecao-validadores.md#us3-3)
 
 * <a id="da-05"></a>**DA-05 (Proteção Contra Remoção Precoce via Conjunto Temporário):**
@@ -60,8 +61,9 @@ O código deve assegurar e manter consistentes as seguintes regras:
   * **Histórias de Usuário Associadas:** [US1-1](../requisitos/01-selecao-validadores.md#us1-1), [US3-1](../requisitos/01-selecao-validadores.md#us3-1), [US3-2](../requisitos/01-selecao-validadores.md#us3-2), [US3-3](../requisitos/01-selecao-validadores.md#us3-3), [US4-1](../requisitos/01-selecao-validadores.md#us4-1), [US4-2](../requisitos/01-selecao-validadores.md#us4-2), [US4-3](../requisitos/01-selecao-validadores.md#us4-3)
 
 * <a id="da-06"></a>**DA-06 (Remoção Agrupada de Validadores Inoperantes):**
-  * **Descrição:** No ciclo de monitoração automática, todos os validadores que ultrapassarem o limite de inatividade são removidos de uma só vez (desde que respeitado o limite mínimo de 4 operacionais).
-  * **Justificativa:** Prioriza a rápida convergência do consenso para o tempo nominal de geração de blocos (4 segundos no QBFT) da RBB, evitando a degradação prolongada da performance do consenso decorrente de uma remoção gradual/unitária de validadores inativos.
+  * **Descrição:** No ciclo de monitoração automática, todos os validadores que atingirem o limite de inatividade são removidos de uma só vez, desde que respeitado o limite mínimo de 4 operacionais. A decisão é tudo ou nada: se a remoção do lote violar o mínimo, nenhum validador é removido. Os protegidos que atingirem o limite entram na contagem do lote para a verificação do mínimo, mas nunca são removidos.
+  * **Justificativa:** Prioriza a rápida convergência do consenso para o tempo nominal de geração de blocos (4 segundos no QBFT) da RBB, evitando a degradação prolongada da performance do consenso decorrente de uma remoção gradual/unitária de validadores inativos. A decisão em lote também evita que o resultado dependa da ordem de avaliação dos validadores.
+  * **Justificativa da contagem dos protegidos:** Postura conservadora: na dúvida, não remove. Um protegido sem proposta no ciclo não tem histórico suficiente para ser considerado saudável, então a verificação do mínimo o trata como potencialmente inativo. Consequência aceita: um protegido inativo pode vetar a remoção do lote inteiro, mantendo no consenso validadores que de fato estão inoperantes até o ciclo seguinte.
   * **Histórias de Usuário Associadas:** [US3-3](../requisitos/01-selecao-validadores.md#us3-3)
 
 * <a id="da-07"></a>**DA-07 (Simplificação da Lógica de Fallback no Ingress):**

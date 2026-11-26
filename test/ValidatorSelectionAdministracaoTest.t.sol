@@ -320,6 +320,19 @@ contract ValidatorSelectionAdministracaoTest is ValidatorSelectionBaseTest {
         assertEq(validatorSelection.blocksWithoutProposeThreshold(), 6);
     }
 
+    function test_addEligibleValidator_RevertsIfAdjustedThresholdExceedsBlocksBetweenSelection() public {
+        vm.startPrank(address(governanceMock));
+        validatorSelection.setSelectionParameters(5, 5);
+
+        bytes memory expectedError = abi.encodeWithSelector(ThresholdExceedsBlocksBetweenSelection.selector);
+        vm.expectRevert(expectedError, address(validatorSelection));
+        validatorSelection.addEligibleValidatorByAddress(validator6.addr, false);
+        vm.stopPrank();
+
+        assertFalse(validatorSelection.isEligible(validator6.addr));
+        assertEq(validatorSelection.blocksWithoutProposeThreshold(), 5);
+    }
+
     function test_addEligibleValidator_ViaEnode() public {
         (bytes32 enodeHigh, bytes32 enodeLow, address validator) = _createEnodeValidator();
 

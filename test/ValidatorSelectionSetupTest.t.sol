@@ -140,6 +140,20 @@ contract ValidatorSelectionSetupTest is ValidatorSelectionBaseTest {
         );
     }
 
+    function test_constructor_RevertsIfThresholdExceedsBlocksBetweenSelection() public {
+        bytes memory expectedError = abi.encodeWithSelector(ThresholdExceedsBlocksBetweenSelection.selector);
+        vm.expectRevert(expectedError);
+        new ValidatorSelection(
+            adminMock,
+            accountRulesMock,
+            nodeRulesMock,
+            _initialEligibleValidators(),
+            initialBlocksBetweenSelection,
+            initialBlocksBetweenSelection + 1,
+            initialNextSelectionBlock
+        );
+    }
+
     function test_constructor_RevertsIfFewEligibleValidators() public {
         address[] memory fewValidators = new address[](0);
 

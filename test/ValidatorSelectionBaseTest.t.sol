@@ -29,7 +29,7 @@ abstract contract ValidatorSelectionBaseTest is Test {
     Vm.Wallet validator5 = vm.createWallet(5);
 
     uint256 public initialNextSelectionBlock = 10;
-    uint256 public initialBlocksBetweenSelection = 2;
+    uint256 public initialBlocksBetweenSelection = 10;
     uint256 public initialBlocksWithoutProposeThreshold = 10;
 
     event MonitorExecuted(address indexed executor, uint256 indexed blockNumber);
@@ -53,6 +53,7 @@ abstract contract ValidatorSelectionBaseTest is Test {
     error UnauthorizedAccess(address account);
     error InvalidBlocksBetweenSelection();
     error InvalidBlocksWithoutProposeThreshold();
+    error ThresholdExceedsBlocksBetweenSelection();
     error InvalidValidatorAddress(address nodeAddress);
     error NotEligibleNode(address nodeAddress);
     error AlreadyEligibleNode(address nodeAddress);

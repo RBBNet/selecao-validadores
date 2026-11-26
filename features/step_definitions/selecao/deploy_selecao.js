@@ -44,7 +44,7 @@ Given('a lista inicial possui endereços de validadores duplicados', function ()
 });
 
 Given('o intervalo definido entre seleções é maior ou igual a 1', function () {
-    this.deployBlocksBetweenSelection = 2;
+    this.deployBlocksBetweenSelection = 10;
 });
 
 Given('o intervalo informado entre seleções é 0', function () {
@@ -67,7 +67,7 @@ Given(/^o endereço do contrato "([^"]+)" informado para a implantação é nulo
 
 When('o usuário executar o deploy do contrato de seleção de validadores', async function () {
     const ValidatorSelectionFactory = await this.ethers.getContractFactory("ValidatorSelection");
-    const blocksBetweenSelection = this.deployBlocksBetweenSelection ?? 2;
+    const blocksBetweenSelection = this.deployBlocksBetweenSelection ?? 10;
     const blocksWithoutProposeThreshold = this.deployBlocksWithoutProposeThreshold ?? (this.deployInitialValidators?.length || 5);
 
     try {
@@ -152,6 +152,13 @@ Then('a transação deve ser revertida por limite de inatividade incompatível',
     assert.ok(err, "Esperava reversão, mas não houve erro registrado");
     const name = extractRevertErrorName(err);
     assert.strictEqual(name, 'InvalidBlocksWithoutProposeThreshold');
+});
+
+Then('a transação deve ser revertida por limite de inatividade maior que o intervalo de seleções', function () {
+    const err = getLastError(this);
+    assert.ok(err, "Esperava reversão, mas não houve erro registrado");
+    const name = extractRevertErrorName(err);
+    assert.strictEqual(name, 'ThresholdExceedsBlocksBetweenSelection');
 });
 
 Then('a transação deve ser revertida', function () {

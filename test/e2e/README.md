@@ -206,6 +206,6 @@ Parâmetros de execução dos scripts de teste:
 | --- | --- | --- |
 | `E2E_RPC` | `http://localhost:8545` | Endpoint JSON-RPC do nó de referência (`besu-node0`). |
 | `E2E_FRESH_NET` | `0` | Se igual a `1`, força a recriação da rede Docker (equivalente a `--fresh`). |
-| `E2E_BLOCKS_BETWEEN_SELECTION` | `30` | Intervalo em blocos entre seleções automáticas (`> E2E_BLOCKS_WITHOUT_PROPOSE_THRESHOLD`). |
+| `E2E_BLOCKS_BETWEEN_SELECTION` | `30` | Intervalo em blocos entre seleções automáticas (`>= E2E_BLOCKS_WITHOUT_PROPOSE_THRESHOLD`). |
 | `E2E_BLOCKS_WITHOUT_PROPOSE_THRESHOLD` | `18` | Limite de blocos inativos tolerados (deve ser maior que a janela *round-robin* de 6 blocos). |
 | `E2E_SELECTION_OFFSET` | `30` | Deslocamento inicial de blocos para agendamento da primeira seleção. |

@@ -13,7 +13,7 @@ Given('um novo contrato de seleção de validadores já foi implantado na rede',
         await this.accountRulesMock.getAddress(),
         await this.nodeRulesMock.getAddress(),
         getStandardValidatorsList(this),
-        2, 10, 10
+        10, 10, 10
     );
     await newSelection.waitForDeployment();
     this.newSelectionContract = newSelection;

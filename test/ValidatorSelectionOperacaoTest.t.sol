@@ -74,7 +74,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         assertEq(validatorSelection.blocksBetweenSelection(), initialBlocksBetweenSelection);
         assertEq(validatorSelection.blocksWithoutProposeThreshold(), initialBlocksWithoutProposeThreshold);
 
-        uint256 updateBlocksBetweenSelection = 10;
+        uint256 updateBlocksBetweenSelection = 100;
         uint256 updateBlocksWithoutProposeThreshold = 100;
         vm.roll(50);
 
@@ -91,7 +91,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
 
     function test_setSelectionParameters_ProtectsOperationalValidators() public {
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         vm.prank(address(governanceMock));
         validatorSelection.setSelectionParameters(initialBlocksBetweenSelection, initialBlocksWithoutProposeThreshold);
@@ -117,7 +117,14 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         Vm.Wallet memory notGovernance = vm.createWallet(1234);
         vm.prank(notGovernance.addr);
         _expectRevertUnauthorized(notGovernance.addr);
-        validatorSelection.setSelectionParameters(10, 100);
+        validatorSelection.setSelectionParameters(100, 100);
+    }
+
+    function test_setSelectionParameters_RevertsIfThresholdExceedsBlocksBetweenSelection() public {
+        vm.prank(address(governanceMock));
+        bytes memory expectedError = abi.encodeWithSelector(ThresholdExceedsBlocksBetweenSelection.selector);
+        vm.expectRevert(expectedError, address(validatorSelection));
+        validatorSelection.setSelectionParameters(100, 101);
     }
 
     function test_executeMonitoring_DoesNothingInManualMode() public {
@@ -226,7 +233,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         assertEq(validatorSelection.getProtectedValidators().length, 5);
 
         assertEq(block.number, 1);
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         uint256 nextSelectionBlock = 100;
 
@@ -280,7 +287,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
 
     function test_executeMonitoring_KeepsAllInactiveValidatorsIfMinimumWouldBeViolated() public {
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         uint256 nextSelectionBlock = 100;
 
@@ -308,7 +315,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         assertEq(validatorSelection.getValidators().length, 8);
 
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         uint256 nextSelectionBlock = 100;
 
@@ -344,7 +351,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         assertEq(validatorSelection.getValidators().length, 6);
 
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         uint256 nextSelectionBlock = 100;
 
@@ -366,7 +373,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
 
     function test_executeMonitoring_KeepsAllValidatorsIfEveryoneIsInactive() public {
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
 
         vm.coinbase(sender);
         vm.roll(100);
@@ -381,7 +388,7 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
 
     function test_executeMonitoring_ProtectedInactiveValidatorVetoesTheBatch() public {
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
+        _closeCurrentCycle(11);
         assertEq(validatorSelection.getProtectedValidators().length, 0);
 
         _activateAsOperational(validator6.addr);
@@ -406,17 +413,61 @@ contract ValidatorSelectionOperacaoTest is ValidatorSelectionBaseTest {
         assertFalse(validatorSelection.isProtected(validator6.addr));
     }
 
+    function test_executeMonitoring_RemovesValidatorInactiveForTheWholeCycle() public {
+        _enableAutomaticMode();
+        _closeCurrentCycle(11);
+        assertEq(validatorSelection.blocksWithoutProposeThreshold(), validatorSelection.blocksBetweenSelection());
+
+        uint256 selectionBlock = validatorSelection.nextSelectionBlock();
+        _setLastBlockProposedBy(validator1.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator2.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator3.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator4.addr, selectionBlock - 1);
+
+        vm.coinbase(sender);
+        vm.roll(selectionBlock);
+        vm.prank(sender);
+        vm.expectEmit(true, true, true, true);
+        emit OperationalValidatorRemoved(validator5.addr);
+        validatorSelection.executeMonitoring();
+
+        assertEq(validatorSelection.getValidators().length, 4);
+        assertFalse(validatorSelection.isOperational(validator5.addr));
+    }
+
+    function test_executeMonitoring_KeepsValidatorInactiveForLessThanThreshold() public {
+        _enableAutomaticMode();
+        _closeCurrentCycle(11);
+
+        uint256 selectionBlock = validatorSelection.nextSelectionBlock();
+        _setLastBlockProposedBy(validator1.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator2.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator3.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(validator4.addr, selectionBlock - 1);
+        _setLastBlockProposedBy(
+            validator5.addr, selectionBlock - validatorSelection.blocksWithoutProposeThreshold() + 1
+        );
+
+        vm.coinbase(sender);
+        vm.roll(selectionBlock);
+        vm.prank(sender);
+        validatorSelection.executeMonitoring();
+
+        assertEq(validatorSelection.getValidators().length, 5);
+        assertTrue(validatorSelection.isOperational(validator5.addr));
+    }
+
     function test_executeMonitoring_MeasuresInactivityFromCycleStart() public {
         _enableAutomaticMode();
-        _closeCurrentCycle(10);
-        assertEq(validatorSelection.cycleStartBlock(), 10);
-        assertEq(validatorSelection.lastBlockProposedBy(validator5.addr), 0);
+        _closeCurrentCycle(11);
+        assertEq(validatorSelection.cycleStartBlock(), 11);
 
-        uint256 firstSelectionBlock = 20;
+        uint256 firstSelectionBlock = 21;
         _setLastBlockProposedBy(validator1.addr, firstSelectionBlock - 1);
         _setLastBlockProposedBy(validator2.addr, firstSelectionBlock - 1);
         _setLastBlockProposedBy(validator3.addr, firstSelectionBlock - 1);
         _setLastBlockProposedBy(validator4.addr, firstSelectionBlock - 1);
+        _setLastBlockProposedBy(validator5.addr, 15);
 
         vm.coinbase(sender);
         vm.roll(firstSelectionBlock);

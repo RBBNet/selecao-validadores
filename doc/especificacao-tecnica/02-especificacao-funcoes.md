@@ -124,6 +124,7 @@
     *   Cada validador em `_initialValidators` deve ser diferente de `address(0)` (caso contrário, reverte com `InvalidAddress()`).
     *   `_blocksBetweenSelection >= 1` (caso contrário, reverte com `InvalidBlocksBetweenSelection()`).
     *   `_blocksWithoutProposeThreshold >= _initialValidators.length` (caso contrário, reverte com `InvalidBlocksWithoutProposeThreshold()`).
+    *   `_blocksWithoutProposeThreshold <= _blocksBetweenSelection` (caso contrário, reverte com `ThresholdExceedsBlocksBetweenSelection()`).
 *   **Efeitos:**
     *   Popula `eligibleValidators`, `operationalValidators` e `protectedValidators` com `_initialValidators`.
     *   Inicializa os parâmetros `blocksBetweenSelection` e `blocksWithoutProposeThreshold`.
@@ -159,15 +160,16 @@
     3. Atualiza `lastMonitoredBlock = block.number`.
     4. Registra a proposição: `lastBlockProposedBy[block.coinbase] = block.number`.
     5. Se `block.number >= nextSelectionBlock` (Ciclo de Seleção Automática) _(Nota: a condição utiliza `>=` ao invés de `==` por resiliência — garante que o ciclo de seleção seja executado mesmo que nenhuma transação de monitoração tenha sido processada exatamente no bloco alvo, cobrindo cenários de blocos sem monitoração.)_:
-        *   **Fase 1: Identificação de inativos.** Para cada validador `V` em `operationalValidators`, seja `ultimaAtividade(V) = max(lastBlockProposedBy[V], cycleStartBlock)`; se `(block.number - ultimaAtividade(V)) > blocksWithoutProposeThreshold`, marca `V` para remoção.
-        *   **Fase 2: Filtro e Remoção.** Para cada marcado para remoção:
-            *   Se `protectedValidators.contains(V)` (protegido), ignora a remoção.
-            *   Se `operationalValidators.length - 1 >= 4` (garantindo que restarão pelo menos `4` operacionais ativos após a remoção), remove `V` de `operationalValidators` e emite `OperationalValidatorRemoved(V)`.
-            *   Se violar o mínimo de 4 operacionais, ignora a remoção de `V`.
+        *   **Fase 1: Identificação de inativos.** Para cada validador `V` em `operationalValidators`, seja `ultimaAtividade(V) = max(lastBlockProposedBy[V], cycleStartBlock)`; se `(block.number - ultimaAtividade(V)) >= blocksWithoutProposeThreshold`, marca `V` como inativo, esteja ou não em `protectedValidators`. Como a seleção ocorre em `cycleStartBlock + blocksBetweenSelection` ou depois, um validador sem nenhuma proposta no ciclo acumula ao menos `blocksBetweenSelection` blocos, o que atinge o limite sempre que `blocksWithoutProposeThreshold <= blocksBetweenSelection`.
+        *   **Fase 2: Remoção em lote (tudo ou nada).** Seja `n` a quantidade de inativos marcados na Fase 1, protegidos incluídos:
+            *   Se `n > 0` e `operationalValidators.length - n >= MIN_OPERATIONAL_VALIDATORS` (4), percorre os inativos: os protegidos são mantidos e cada não protegido é removido de `operationalValidators`, com emissão de `OperationalValidatorRemoved(V)`.
+            *   Caso contrário, nenhum validador é removido.
+            *   Como os protegidos entram em `n`, um protegido inativo pode vetar a remoção do lote mesmo quando a saída apenas dos não protegidos manteria o piso ([DA-06](../arquitetura/01-visao-geral.md#da-06)).
+            *   Emite `SelectionExecuted(operationalValidators.values())`.
         *   **Fase 3: Reset de Ciclo.**
             *   Limpa o conjunto temporário de validadores protegidos (`protectedValidators`) conforme as regras de esvaziamento do conjunto de proteção.
+            *   Define `cycleStartBlock = block.number`, o que reinicia a contagem de blocos sem propor de todos os validadores.
             *   Define `nextSelectionBlock = block.number + blocksBetweenSelection`.
-            *   Emite `SelectionExecuted(operationalValidators.values())`.
 
 ### 3.2.4 `addOperationalValidator (via Enode)`
 **Assinatura:** `function addOperationalValidator(bytes32 enodeHigh, bytes32 enodeLow) external`
@@ -245,7 +247,7 @@
 *   **Efeitos:**
     *   Adiciona `_validator` a `eligibleValidators`. Emite `EligibleValidatorAdded(_validator, _alsoOperational)`.
     *   Se `_alsoOperational == true`, insere em `operationalValidators` e `protectedValidators`. Emite `OperationalValidatorAdded(_validator)` para garantir consistência de auditoria com a US4-1.
-    *   **Ajuste de Parâmetro Automático:** Se `blocksWithoutProposeThreshold < eligibleValidators.length()`, define `blocksWithoutProposeThreshold = eligibleValidators.length()` e emite `SelectionParametersUpdated`.
+    *   **Ajuste de Parâmetro Automático:** Se `blocksWithoutProposeThreshold < eligibleValidators.length()`, define `blocksWithoutProposeThreshold = eligibleValidators.length()` e emite `SelectionParametersUpdated`. Se o novo valor ultrapassar `blocksBetweenSelection`, reverte com `ThresholdExceedsBlocksBetweenSelection()` e a inclusão não ocorre.
 
 ### 3.2.9 `addEligibleValidator (via Enode)`
 **Assinatura:** `function addEligibleValidator(bytes32 _enodeHigh, bytes32 _enodeLow, bool _alsoOperational) external`
@@ -264,7 +266,7 @@
 *   **Efeitos:**
     *   Adiciona `V` a `eligibleValidators`. Emite `EligibleValidatorAdded(V, _alsoOperational)`.
     *   Se `_alsoOperational == true`, insere em `operationalValidators` e `protectedValidators`. Emite `OperationalValidatorAdded(V)`.
-    *   **Ajuste de Parâmetro Automático:** Se `blocksWithoutProposeThreshold < eligibleValidators.length()`, define `blocksWithoutProposeThreshold = eligibleValidators.length()` e emite `SelectionParametersUpdated`.
+    *   **Ajuste de Parâmetro Automático:** Se `blocksWithoutProposeThreshold < eligibleValidators.length()`, define `blocksWithoutProposeThreshold = eligibleValidators.length()` e emite `SelectionParametersUpdated`. Se o novo valor ultrapassar `blocksBetweenSelection`, reverte com `ThresholdExceedsBlocksBetweenSelection()` e a inclusão não ocorre.
 
 ### 3.2.10 `removeEligibleValidator (via Endereço)`
 **Assinatura:** `function removeEligibleValidator(address _validator) external`
@@ -314,7 +316,7 @@
 | `_blocksWithoutProposeThreshold` | `uint256` | Novo limite máximo em blocos de inatividade. |
 
 *   **Acesso:** `onlyGovernance`
-*   **Validações:** `_blocksBetweenSelection >= 1` (reverte com `InvalidBlocksBetweenSelection()`) e `_blocksWithoutProposeThreshold >= eligibleValidators.length()` (reverte com `InvalidBlocksWithoutProposeThreshold()`).
+*   **Validações:** `_blocksBetweenSelection >= 1` (reverte com `InvalidBlocksBetweenSelection()`) `_blocksWithoutProposeThreshold >= eligibleValidators.length()` (reverte com `InvalidBlocksWithoutProposeThreshold()`) e `_blocksWithoutProposeThreshold <= _blocksBetweenSelection` (reverte com `ThresholdExceedsBlocksBetweenSelection()`).
 *   **Efeitos:**
     *   Atualiza as variáveis correspondentes.
     *   Popula o conjunto temporário de validadores protegidos (`protectedValidators`) com todos os elementos de `operationalValidators`.
